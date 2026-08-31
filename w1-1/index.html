@@ -96,18 +96,21 @@
   .table-wrap { overflow-x: auto; }
   table {
     width: 100%;
+    min-width: 760px;
     border-collapse: collapse;
     font-size: 13px;
+    table-layout: fixed;
   }
   th, td {
     border: 1px solid var(--border);
     padding: 8px 10px;
     vertical-align: top;
     text-align: left;
+    overflow-wrap: break-word;
   }
   thead th { background: #f0f2f4; font-size: 12px; }
-  td.pcell { min-width: 210px; background: #fafbfc; }
-  td.cell { white-space: pre-wrap; min-width: 190px; font-size: 12.5px; line-height: 1.45; }
+  td.pcell { background: #fafbfc; }
+  td.cell { white-space: pre-wrap; font-size: 12.5px; line-height: 1.45; }
   .cell.loading { color: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: 0.4; } }
   .cell.error { color: var(--err); background: var(--err-soft); border-radius: 6px; }
@@ -144,6 +147,12 @@
     <p class="table-note">Столбец «По умолчанию» одинаков для всех строк — получен один раз с настройками по умолчанию.</p>
     <div class="table-wrap">
       <table>
+        <colgroup>
+          <col style="width: 240px">
+          <col>
+          <col>
+          <col>
+        </colgroup>
         <thead>
           <tr>
             <th>Параметр</th>
