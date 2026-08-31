@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Playground · DeepSeek</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1d232b;
+    --muted: #6b7280;
+    --border: #e3e6ea;
+    --base: #0f9d58;
+    --err: #d0342c;
+    --err-soft: #fdeceb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  header {
+    padding: 28px 24px 8px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 16px 24px 48px; }
+
+  .prompt-card, .table-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .prompt-card { margin-bottom: 16px; }
+  .prompt-card label { font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  textarea:focus { outline: 2px solid var(--base); outline-offset: -1px; }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--base);
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(0.95); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .note { color: var(--muted); font-size: 12px; }
+
+  .table-card { margin-bottom: 16px; }
+  .table-card h2 { margin: 0 0 6px; font-size: 15px; }
+  .table-note { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    vertical-align: top;
+    text-align: left;
+  }
+  thead th { background: #f0f2f4; font-size: 12px; }
+  td.pcell { min-width: 210px; background: #fafbfc; }
+  td.cell { white-space: pre-wrap; min-width: 190px; font-size: 12.5px; line-height: 1.45; }
+  .cell.loading { color: var(--muted); animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+  .cell.error { color: var(--err); background: var(--err-soft); border-radius: 6px; }
+  .param-hint {
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.4;
+    margin-top: 3px;
+  }
+  .param-hint b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚙️ LLM Playground</h1>
+  <p>DeepSeek API · сравнение ответов при параметрах «по умолчанию / минимум / максимум»</p>
+</header>
+
+<main>
+  <section class="prompt-card">
+    <label for="prompt">Промпт</label>
+    <textarea id="prompt" rows="3">Придумай короткий творческий ответ: «Зимним вечером за окном…»</textarea>
+    <div class="actions">
+      <button id="run">Сравнить</button>
+      <span class="note">Для каждого параметра выполняются 2 запроса: настройка «в минимум» и «в максимум» (остальные — по умолчанию). Столбец «По умолчанию» считается один раз и повторяется во всех строках. top_k и seed при 0 не отправляются; top_k не поддерживается DeepSeek API.</span>
+    </div>
+  </section>
+
+  <section class="table-card">
+    <h2>Ответы модели</h2>
+    <p class="table-note">Столбец «По умолчанию» одинаков для всех строк — получен один раз с настройками по умолчанию.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Параметр</th>
+            <th>По умолчанию</th>
+            <th>Минимум</th>
+            <th>Максимум</th>
+          </tr>
+        </thead>
+        <tbody id="sweep-body"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  const DEFAULTS = {
+    temperature: 0.7,
+    top_p: 1.0,
+    top_k: 0,
+    max_tokens: 512,
+    seed: 0,
+    presence_penalty: 0,
+    frequency_penalty: 0,
+  };
+
+  const SWEEP_PARAMS = [
+    {
+      key: 'temperature',
+      min: 0, max: 2,
+      what: 'Случайность / «креативность» ответа.',
+      minHint: 'Минимум (0): точный, «сухой», почти детерминированный ответ.',
+      maxHint: 'Максимум (2): максимум случайности — модель может «фантазировать».',
+    },
+    {
+      key: 'top_p',
+      min: 0.01, max: 1,
+      what: 'Отсечение маловероятных продолжений по порогу вероятности.',
+      minHint: 'Минимум (0.01): минимальное допустимое значение — почти только самое вероятное слово.',
+      maxHint: 'Максимум (1): отсечения нет — учитываются все варианты (как без параметра).',
+    },
+    {
+      key: 'top_k',
+      min: 0, max: 100,
+      what: 'Из отобранных продолжений берутся только K самых вероятных.',
+      minHint: 'Минимум (0): параметр не отправляется (как по умолчанию).',
+      maxHint: 'Максимум (100): отбор из 100 лучших вариантов. DeepSeek не поддерживает top_k — возможна ошибка API.',
+    },
+    {
+      key: 'max_tokens',
+      min: 1, max: 8192,
+      what: 'Лимит длины ответа в токенах.',
+      minHint: 'Минимум (1): ответ обрывается почти сразу — будет очень коротким.',
+      maxHint: 'Максимум (8192): большой запас для длинного ответа, но дольше и дороже.',
+    },
+    {
+      key: 'seed',
+      min: 0, max: 2147483647,
+      what: 'Зерно рандомизации для воспроизводимости.',
+      minHint: 'Минимум (0): не задан — результат случайный.',
+      maxHint: 'Максимум (2^31−1): фиксированное зерно — тот же промпт даёт тот же ответ.',
+    },
+    {
+      key: 'presence_penalty',
+      min: -2, max: 2,
+      what: 'Штраф за появление слова — поощряет новые темы.',
+      minHint: 'Минимум (−2): штрафа нет — модель свободно возвращается к старым темам.',
+      maxHint: 'Максимум (2): сильный штраф — модель активно вводит новые слова и темы.',
+    },
+    {
+      key: 'frequency_penalty',
+      min: -2, max: 2,
+      what: 'Штраф за повторяющиеся слова.',
+      minHint: 'Минимум (−2): повторы не штрафуются — текст может зацикливаться.',
+      maxHint: 'Максимум (2): сильный штраф — меньше повторов, разнообразнее текст.',
+    },
+  ];
+
+  const promptEl = document.getElementById('prompt');
+  const runBtn = document.getElementById('run');
+  const tbody = document.getElementById('sweep-body');
+
+  function buildTable() {
+    tbody.innerHTML = '';
+    for (const p of SWEEP_PARAMS) {
+      const tr = document.createElement('tr');
+      tr.dataset.key = p.key;
+
+      const pcell = document.createElement('td');
+      pcell.className = 'pcell';
+      pcell.innerHTML =
+        '<code>' + p.key + '</code>' +
+        '<div class="param-hint">' + p.what + '</div>' +
+        '<div class="param-hint"><b>Минимум:</b> ' + p.minHint + '</div>' +
+        '<div class="param-hint"><b>Максимум:</b> ' + p.maxHint + '</div>';
+      tr.appendChild(pcell);
+
+      const def = document.createElement('td');
+      def.className = 'cell def loading';
+      def.textContent = '…';
+      tr.appendChild(def);
+
+      const min = document.createElement('td');
+      min.className = 'cell min loading';
+      min.textContent = '…';
+      tr.appendChild(min);
+
+      const max = document.createElement('td');
+      max.className = 'cell max loading';
+      max.textContent = '…';
+      tr.appendChild(max);
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function request(prompt, params) {
+    try {
+      const res = await fetch('/api/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, params }),
+      });
+      return await res.json();
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }
+
+  function setCell(cell, data) {
+    cell.classList.remove('loading');
+    if (data.error) {
+      cell.classList.add('error');
+      cell.textContent = 'Ошибка: ' + data.error;
+    } else {
+      cell.classList.remove('error');
+      cell.textContent = data.content || '(пустой ответ)';
+    }
+  }
+
+  function renderCell(job, data) {
+    if (job.kind === 'default') {
+      document.querySelectorAll('.cell.def').forEach(cell => setCell(cell, data));
+    } else {
+      const row = tbody.querySelector('tr[data-key="' + job.key + '"]');
+      setCell(row.querySelector('.cell.' + job.edge), data);
+    }
+  }
+
+  async function mapLimit(items, limit, fn) {
+    const results = new Array(items.length);
+    let idx = 0;
+    async function worker() {
+      while (idx < items.length) {
+        const i = idx++;
+        results[i] = await fn(items[i]);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return results;
+  }
+
+  async function run() {
+    const prompt = promptEl.value.trim();
+    if (!prompt) {
+      promptEl.focus();
+      return;
+    }
+    runBtn.disabled = true;
+    buildTable();
+
+    const jobs = [{ kind: 'default' }];
+    for (const p of SWEEP_PARAMS) {
+      jobs.push({ key: p.key, edge: 'min', param: p });
+      jobs.push({ key: p.key, edge: 'max', param: p });
+    }
+
+    await mapLimit(jobs, 4, async (job) => {
+      let config;
+      if (job.kind === 'default') {
+        config = DEFAULTS;
+      } else {
+        config = Object.assign({}, DEFAULTS, { [job.key]: job.edge === 'min' ? job.param.min : job.param.max });
+      }
+      const data = await request(prompt, config);
+      renderCell(job, data);
+    });
+
+    runBtn.disabled = false;
+  }
+
+  runBtn.addEventListener('click', run);
+</script>
+</body>
+</html>
