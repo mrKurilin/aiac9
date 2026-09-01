@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Playground · Формат ответа</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1d232b;
+    --muted: #6b7280;
+    --border: #e3e6ea;
+    --base: #0f9d58;
+    --err: #d0342c;
+    --err-soft: #fdeceb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  header {
+    padding: 28px 24px 8px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  main { max-width: 1600px; margin: 0 auto; padding: 16px 24px 48px; }
+
+  .prompt-card, .table-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .prompt-card { margin-bottom: 16px; }
+  .prompt-card label { font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  textarea:focus, input:focus { outline: 2px solid var(--base); outline-offset: -1px; }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--base);
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(0.95); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .note { color: var(--muted); font-size: 12px; }
+  .modes-title { font-weight: 600; font-size: 13px; margin-top: 16px; margin-bottom: 4px; }
+  .modes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+  }
+  .mode-card {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .mode-card-head { font-weight: 600; font-size: 13px; }
+  .mode-card-desc {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+    margin-top: 2px;
+    margin-bottom: 8px;
+  }
+  .mode-card-desc code { font-size: 11.5px; }
+  .card-label { font-weight: 600; font-size: 11px; display: block; margin: 8px 0 4px; color: var(--muted); }
+  .manual-edit {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+  }
+  .manual-edit.invalid { outline: 2px solid var(--err); outline-offset: -1px; }
+
+  .table-card { margin-bottom: 16px; }
+  .table-card h2 { margin: 0 0 6px; font-size: 15px; }
+  .table-note { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    min-width: 1080px;
+    border-collapse: collapse;
+    font-size: 15px;
+    table-layout: fixed;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    vertical-align: top;
+    text-align: left;
+    overflow-wrap: break-word;
+  }
+  thead th { background: #f0f2f4; font-size: 14px; }
+  td.acell { background: #fafbfc; }
+  td.cell { white-space: pre-wrap; font-size: 14.5px; line-height: 1.45; }
+  td.cell.small { font-size: 12.5px; color: var(--muted); }
+  .cell.loading { position: relative; }
+  .spinner {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--base);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .cell.error { color: var(--err); background: var(--err-soft); border-radius: 6px; }
+  .mode-hint {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.4;
+    margin-top: 3px;
+    font-weight: 400;
+  }
+  .mode-hint b { color: var(--text); }
+  .meta { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+  .meta b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎛️ LLM Playground</h1>
+  <p>DeepSeek API · один и тот же запрос с разным уровнем контроля ответа: формат, длина, завершение</p>
+</header>
+
+<main>
+  <section class="prompt-card">
+    <label for="prompt">Промпт (один и тот же для всех режимов)</label>
+    <textarea id="prompt" rows="3">Придумай короткое стихотворение о зиме.</textarea>
+
+    <div class="modes-title">Параметры режимов</div>
+    <div class="modes">
+      <div class="mode-card">
+        <div class="mode-card-head">Без ограничений</div>
+        <div class="mode-card-desc">Базовый промпт без параметров — контрольная точка.</div>
+        <label class="card-label" for="manual-none">Параметры (JSON)</label>
+        <textarea id="manual-none" class="manual-edit" rows="2">{}</textarea>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card-head">Формат ответа</div>
+        <div class="mode-card-desc">К промпту дописывается описание формата, <code>response_format</code> гарантирует валидный JSON.</div>
+        <label class="card-label" for="format">Описание формата (дописывается к промпту)</label>
+        <input id="format" type="text" value="JSON-объект вида {&quot;title&quot;: &quot;...&quot;, &quot;verse&quot;: &quot;...&quot;}">
+        <label class="card-label" for="manual-format">Параметры (JSON)</label>
+        <textarea id="manual-format" class="manual-edit" rows="2">{&quot;response_format&quot;: {&quot;type&quot;: &quot;json_object&quot;}}</textarea>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card-head">Лимит длины</div>
+        <div class="mode-card-desc"><code>max_tokens</code> обрывает ответ на заданном объёме.</div>
+        <label class="card-label" for="manual-length">Параметры (JSON)</label>
+        <textarea id="manual-length" class="manual-edit" rows="2">{&quot;max_tokens&quot;: 60}</textarea>
+      </div>
+      <div class="mode-card">
+        <div class="mode-card-head">Стоп-последовательность</div>
+        <div class="mode-card-desc"><code>stop</code> останавливает генерацию на первом вхождении.</div>
+        <label class="card-label" for="manual-stop">Параметры (JSON)</label>
+        <textarea id="manual-stop" class="manual-edit" rows="2">{&quot;stop&quot;: [&quot;.&quot;]}</textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="run">Сравнить</button>
+      <span class="note">Один и тот же промпт отправляется в 4 режимах: без ограничений, с явным описанием формата, с лимитом длины (<code>max_tokens</code>), со стоп-последовательностью (<code>stop</code>).</span>
+    </div>
+  </section>
+
+  <section class="table-card">
+    <h2>Ответы модели</h2>
+    <p class="table-note">Столбцы — уровни контроля. Строки «Промпт» и «Параметры» показывают, что реально ушло в API в каждом режиме.</p>
+    <div class="table-wrap">
+      <table>
+        <colgroup>
+          <col style="width: 150px">
+          <col>
+          <col>
+          <col>
+          <col>
+        </colgroup>
+        <thead id="sweep-head"></thead>
+        <tbody id="sweep-body"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  const MODES = [
+    {
+      key: 'none',
+      label: 'Без ограничений',
+      hint: 'Базовый промпт, доп. параметры не задаются.',
+    },
+    {
+      key: 'format',
+      label: 'Формат ответа',
+      hint: 'К промпту добавляется описание формата.',
+    },
+    {
+      key: 'length',
+      label: 'Лимит длины',
+      hint: 'Ответ обрезается по <code>max_tokens</code>.',
+    },
+    {
+      key: 'stop',
+      label: 'Стоп-последовательность',
+      hint: 'Генерация останавливается на <code>stop</code>.',
+    },
+  ];
+
+  const promptEl = document.getElementById('prompt');
+  const formatEl = document.getElementById('format');
+  const runBtn = document.getElementById('run');
+  const thead = document.getElementById('sweep-head');
+  const tbody = document.getElementById('sweep-body');
+
+  const manualEls = {
+    none: document.getElementById('manual-none'),
+    format: document.getElementById('manual-format'),
+    length: document.getElementById('manual-length'),
+    stop: document.getElementById('manual-stop'),
+  };
+
+  function promptFor(mode) {
+    const base = promptEl.value.trim();
+    if (mode === 'format' && formatEl.value.trim()) {
+      return base + '\n\nФормат ответа: ' + formatEl.value.trim();
+    }
+    return base;
+  }
+
+  function manualParams(mode) {
+    const raw = manualEls[mode].value.trim();
+    if (!raw) return {};
+    return JSON.parse(raw);
+  }
+
+  function paramsDisplay(mode) {
+    const manual = manualParams(mode);
+    return Object.keys(manual).length ? JSON.stringify(manual, null, 2) : '—';
+  }
+
+  function configFor(mode) {
+    if (mode === 'format') {
+      return { format: formatEl.value.trim() };
+    }
+    return {};
+  }
+
+  function buildTable() {
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    const headTr = document.createElement('tr');
+    const corner = document.createElement('th');
+    corner.textContent = 'Аспект';
+    headTr.appendChild(corner);
+    for (const m of MODES) {
+      const th = document.createElement('th');
+      th.innerHTML = '<div>' + m.label + '</div><div class="mode-hint">' + m.hint + '</div>';
+      headTr.appendChild(th);
+    }
+    thead.appendChild(headTr);
+
+    const rows = [
+      { key: 'prompt', label: 'Промпт (что ушло в API)', small: true },
+      { key: 'params', label: 'Параметры', small: true },
+      { key: 'answer', label: 'Ответ', small: false },
+      { key: 'meta', label: 'Завершение / токены', small: true },
+    ];
+
+    for (const r of rows) {
+      const tr = document.createElement('tr');
+      const acell = document.createElement('td');
+      acell.className = 'acell';
+      acell.textContent = r.label;
+      tr.appendChild(acell);
+
+      for (const m of MODES) {
+        const td = document.createElement('td');
+        td.className = 'cell ' + (r.small ? 'small ' : '') + r.key + ' m-' + m.key;
+        if (r.key === 'prompt') {
+          td.textContent = promptFor(m.key);
+        } else if (r.key === 'params') {
+          try {
+            td.textContent = paramsDisplay(m.key);
+          } catch (e) {
+            td.classList.add('error');
+            td.textContent = 'Невалидный JSON: ' + e.message;
+          }
+        } else {
+          td.classList.add('loading');
+          const spinner = document.createElement('div');
+          spinner.className = 'spinner';
+          td.appendChild(spinner);
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  async function request(mode) {
+    try {
+      const res = await fetch('/api/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptEl.value.trim(), config: configFor(mode), params: manualParams(mode) }),
+      });
+      return await res.json();
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }
+
+  function setCell(sel, text) {
+    const el = document.querySelector(sel);
+    el.classList.remove('loading');
+    el.textContent = text;
+  }
+
+  function renderAnswer(mode, data) {
+    const cell = tbody.querySelector('.cell.answer.m-' + mode);
+    const metaCell = tbody.querySelector('.cell.meta.m-' + mode);
+    cell.classList.remove('loading');
+    metaCell.classList.remove('loading');
+    if (data.error) {
+      cell.classList.add('error');
+      cell.textContent = 'Ошибка: ' + data.error;
+      metaCell.textContent = '—';
+      return;
+    }
+    cell.classList.remove('error');
+    cell.textContent = data.content || '(пустой ответ)';
+
+    metaCell.textContent =
+      'finish_reason: ' + (data.finish_reason || '—') +
+      '\nпромпт: ' + (data.prompt_tokens ?? '—') +
+      ' · ответ: ' + (data.completion_tokens ?? '—') +
+      ' · всего: ' + (data.total_tokens ?? '—');
+  }
+
+  async function mapLimit(items, limit, fn) {
+    const results = new Array(items.length);
+    let idx = 0;
+    async function worker() {
+      while (idx < items.length) {
+        const i = idx++;
+        results[i] = await fn(items[i]);
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return results;
+  }
+
+  async function run() {
+    const prompt = promptEl.value.trim();
+    if (!prompt) {
+      promptEl.focus();
+      return;
+    }
+    runBtn.disabled = true;
+    buildTable();
+
+    const invalid = [];
+    for (const m of MODES) {
+      manualEls[m.key].classList.remove('invalid');
+      try {
+        manualParams(m.key);
+      } catch (e) {
+        invalid.push(m.key);
+        manualEls[m.key].classList.add('invalid');
+        const cell = tbody.querySelector('.cell.answer.m-' + m.key);
+        const metaCell = tbody.querySelector('.cell.meta.m-' + m.key);
+        cell.classList.remove('loading');
+        cell.classList.add('error');
+        cell.textContent = 'Ошибка: невалидный JSON в параметрах';
+        metaCell.classList.remove('loading');
+        metaCell.textContent = '—';
+      }
+    }
+
+    await mapLimit(MODES.filter(m => !invalid.includes(m.key)), 4, async (mode) => {
+      const data = await request(mode.key);
+      renderAnswer(mode.key, data);
+    });
+
+    runBtn.disabled = false;
+  }
+
+  runBtn.addEventListener('click', run);
+</script>
+</body>
+</html>
