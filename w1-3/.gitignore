@@ -1,0 +1,16 @@
+# Compiled binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Compiled binary for this module
+w1-3
+
+# Test binary built with `go test -c`
+*.test
+
+# Output of the Go coverage tool
+*.out

@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Playground · Способы рассуждения</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1d232b;
+    --muted: #6b7280;
+    --border: #e3e6ea;
+    --base: #0f9d58;
+    --link: #1a73e8;
+    --err: #d0342c;
+    --err-soft: #fdeceb;
+    --acc-1: #0f9d58;
+    --acc-2: #1a73e8;
+    --acc-3: #e37400;
+    --acc-4: #7b4fd0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  header {
+    padding: 26px 28px 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  main { padding: 12px 28px 48px; width: 100%; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .prompt-card { margin-bottom: 18px; }
+  .prompt-card label { font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  textarea:focus, input:focus { outline: 2px solid var(--base); outline-offset: -1px; }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--base);
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(0.95); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .note { color: var(--muted); font-size: 12.5px; }
+
+  .cols-title { display: flex; align-items: baseline; gap: 12px; margin: 4px 0 10px; flex-wrap: wrap; }
+  .cols-title h2 { margin: 0; font-size: 16px; }
+  .cols-title span { color: var(--muted); font-size: 12.5px; }
+
+  .cols { overflow-x: auto; padding-bottom: 4px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 16px;
+    min-width: 1080px;
+    align-items: stretch;
+  }
+
+  .col-head {
+    display: flex;
+    gap: 11px;
+    align-items: center;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+  }
+  .col-num {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--acc);
+  }
+  .col-title { font-weight: 700; font-size: 15px; line-height: 1.25; }
+  .col-title code { font-size: 13px; background: #eef0f2; border-radius: 4px; padding: 0 4px; }
+  .col-hint { color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 3px; }
+
+  .col-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .sent {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .sent .lbl {
+    font-weight: 600;
+    font-size: 10.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    margin-bottom: 4px;
+  }
+  .sent pre {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #37424f;
+    max-height: 150px;
+    overflow: auto;
+  }
+
+  .answer { flex: 1; }
+  .answer .ph { color: #b6bcc4; font-size: 13px; }
+  .answer.error {
+    background: var(--err-soft);
+    border: 1px solid #f3c4c0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--err);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--acc, var(--base));
+    animation: spin 0.8s linear infinite;
+    margin: 6px 0 2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-note { color: var(--muted); font-size: 12px; }
+  .meta {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    border-top: 1px dashed var(--border);
+    padding-top: 8px;
+  }
+  .meta b { color: var(--text); }
+
+  .hidden { display: none !important; }
+
+  /* Markdown answers */
+  .answer .md { font-size: 14.5px; line-height: 1.55; word-break: break-word; }
+  .answer .md > :first-child { margin-top: 0; }
+  .answer .md > :last-child { margin-bottom: 0; }
+  .answer .md p { margin: 0 0 8px; }
+  .answer .md h1, .answer .md h2, .answer .md h3,
+  .answer .md h4, .answer .md h5, .answer .md h6 {
+    margin: 12px 0 6px;
+    line-height: 1.3;
+    font-weight: 700;
+  }
+  .answer .md h1 { font-size: 19px; }
+  .answer .md h2 { font-size: 17px; }
+  .answer .md h3 { font-size: 16px; }
+  .answer .md h4, .answer .md h5, .answer .md h6 { font-size: 15px; }
+  .answer .md ul, .answer .md ol { margin: 4px 0 8px; padding-left: 22px; }
+  .answer .md li { margin: 2px 0; }
+  .answer .md ul ul, .answer .md ol ol, .answer .md ul ol, .answer .md ol ul { margin: 2px 0; }
+  .answer .md pre {
+    background: #f4f5f7;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    margin: 0 0 8px;
+    font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre;
+  }
+  .answer .md code {
+    background: #eef0f2;
+    border-radius: 4px;
+    padding: 1px 4px;
+    font: 0.92em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .answer .md pre code { background: none; padding: 0; font-size: 12.5px; }
+  .answer .md blockquote {
+    margin: 0 0 8px;
+    padding: 2px 12px;
+    border-left: 3px solid var(--border);
+    color: var(--muted);
+  }
+  .answer .md hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .answer .md a { color: var(--link); }
+  .answer .md .katex-display { margin: 8px 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+  @media (max-width: 1180px) {
+    header, main { padding-left: 18px; padding-right: 18px; }
+    .grid { min-width: 1000px; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+</head>
+<body>
+
+<header>
+  <h1>🎭 Способы рассуждения</h1>
+  <p>DeepSeek API · одна задача решается четырьмя разными стратегиями — сравните ход мыслей и ответы.</p>
+</header>
+
+<main>
+  <section class="card prompt-card">
+    <label for="prompt">Задача (одна и та же для всех четырёх способов)</label>
+    <textarea id="prompt" rows="8">Перед вами четыре стакана, наполненных водой на одном уровне. В каждом стакане находится предмет:
+
+в первом стакане — металлические наручные часы;
+во втором стакане — канцелярская скрепка;
+в третьем стакане — металлические ножницы;
+в четвёртом стакане — ластик.
+
+Вопрос: в каком стакане воды больше, чем в остальных?</textarea>
+
+    <div class="actions">
+      <button id="run">Решить четырьмя способами</button>
+      <span class="note">Четыре запроса запускаются параллельно: прямой ответ, «решай пошагово», сначала составление промпта, группа экспертов.</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="cols-title">
+      <h2>Сравнение способов</h2>
+      <span>В каждой колонке — что реально отправлено в API и ответ модели.</span>
+    </div>
+
+    <div class="cols">
+      <div class="grid">
+
+        <div class="col-head" style="--acc: var(--acc-1)">
+          <div class="col-num">1</div>
+          <div>
+            <div class="col-title">Без подсказок</div>
+            <div class="col-hint">В API уходит только условие задачи — прямой ответ модели.</div>
+          </div>
+        </div>
+        <div class="col-head" style="--acc: var(--acc-2)">
+          <div class="col-num">2</div>
+          <div>
+            <div class="col-title">«Решай пошагово»</div>
+            <div class="col-hint">К условию дописывается инструкция решать пошагово и объяснять каждый шаг.</div>
+          </div>
+        </div>
+        <div class="col-head" style="--acc: var(--acc-3)">
+          <div class="col-num">3</div>
+          <div>
+            <div class="col-title">Сначала промпт — потом решение</div>
+            <div class="col-hint">Модель сначала составляет промпт для решения задачи, затем решает по нему. Два запроса.</div>
+          </div>
+        </div>
+        <div class="col-head" style="--acc: var(--acc-4)">
+          <div class="col-num">4</div>
+          <div>
+            <div class="col-title">Группа экспертов</div>
+            <div class="col-hint">В одном промпте создаётся группа из аналитика, инженера и критика — решение от каждого плюс итог.</div>
+          </div>
+        </div>
+
+        <div class="col-body" style="--acc: var(--acc-1)">
+          <div class="sent">
+            <div class="lbl">Промпт, отправленный в API</div>
+            <pre id="sent-direct"></pre>
+          </div>
+          <div class="answer" id="answer-direct"><div class="ph">Ответ появится после запуска.</div></div>
+          <div class="meta" id="meta-direct"></div>
+        </div>
+        <div class="col-body" style="--acc: var(--acc-2)">
+          <div class="sent">
+            <div class="lbl">Промпт, отправленный в API</div>
+            <pre id="sent-step"></pre>
+          </div>
+          <div class="answer" id="answer-step"><div class="ph">Ответ появится после запуска.</div></div>
+          <div class="meta" id="meta-step"></div>
+        </div>
+        <div class="col-body" style="--acc: var(--acc-3)">
+          <div class="sent">
+            <div class="lbl">Шаг 1 · запрос к модели-составителю</div>
+            <pre id="sent-meta"></pre>
+          </div>
+          <div class="sent hidden" id="composed-wrap">
+            <div class="lbl">Шаг 2 · промпт, составленный моделью</div>
+            <pre id="composed-meta"></pre>
+          </div>
+          <div class="answer" id="answer-meta"><div class="ph">Ответ появится после запуска.</div></div>
+          <div class="meta" id="meta-meta"></div>
+        </div>
+        <div class="col-body" style="--acc: var(--acc-4)">
+          <div class="sent">
+            <div class="lbl">Промпт, отправленный в API</div>
+            <pre id="sent-experts"></pre>
+          </div>
+          <div class="answer" id="answer-experts"><div class="ph">Ответ появится после запуска.</div></div>
+          <div class="meta" id="meta-experts"></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const promptEl = $('prompt');
+  const runBtn = $('run');
+
+  const KEYS = ['direct', 'step', 'meta', 'experts'];
+  const STEP_TAIL = '\n\nРешай пошагово и подробно опиши каждый шаг рассуждения, проверь свой ответ.';
+
+  function basePrompt() {
+    return promptEl.value.trim();
+  }
+
+  function metaComposerPrompt(task) {
+    return 'Ты — инженер промптов. Составь промпт для языковой модели, который позволит точно и безошибочно решить задачу ниже. '
+      + 'Промпт должен требовать пошагового решения, проверки вычислений и проверки ответа на соответствие условию. '
+      + 'Саму задачу сейчас не решай. Верни только текст составленного промпта, без пояснений и без рамок-ограничителей.\n\n'
+      + 'Задача:\n' + task;
+  }
+
+  function expertsTail() {
+    return '\n\nРеши эту задачу как группа из трёх экспертов, каждый из которых приводит собственное решение со своей позиции:\n\n'
+      + 'Аналитик — разбирает условие по шагам, находит подводные камни и даёт строгое, обоснованное решение.\n'
+      + 'Инженер — решает практично, аккуратно выполняет вычисления и проверяет, что ответ согласуется с условием.\n'
+      + 'Критик — проверяет решения коллег, ищет ошибки и слабые места, подтверждает или опровергает их.\n\n'
+      + 'Оформи ответ разделами «Аналитик:», «Инженер:», «Критик:». В конце добавь раздел «Итог:» — единый ответ и объяснение, почему он верный.';
+  }
+
+  async function complete(prompt) {
+    try {
+      const res = await fetch('/api/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      return await res.json();
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }
+
+  function metaText(d) {
+    return 'finish_reason: ' + (d.finish_reason || '—') + ' · всего токенов: ' + (d.total_tokens ?? '—');
+  }
+
+  function startLoading(key) {
+    const box = $('answer-' + key);
+    box.classList.remove('error');
+    box.innerHTML = '';
+    const spin = document.createElement('div');
+    spin.className = 'spinner';
+    box.appendChild(spin);
+    const note = document.createElement('div');
+    note.className = 'loading-note';
+    note.textContent = 'Модель думает…';
+    box.appendChild(note);
+    $('meta-' + key).textContent = '';
+  }
+
+  function showAnswer(key, content, meta) {
+    const box = $('answer-' + key);
+    box.classList.remove('error');
+    box.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = 'md';
+    div.innerHTML = renderMarkdown(content || '(пустой ответ)');
+    box.appendChild(div);
+    renderMath(div);
+    $('meta-' + key).textContent = meta;
+  }
+
+  function renderMath(root) {
+    if (window.renderMathInElement) {
+      try {
+        renderMathInElement(root, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '$', right: '$', display: false },
+          ],
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+          throwOnError: false,
+        });
+      } catch (e) {
+        // оставляем исходный текст формулы, если KaTeX не смог отрендерить
+      }
+    }
+  }
+
+  function showError(key, message) {
+    const box = $('answer-' + key);
+    box.innerHTML = '';
+    box.classList.add('error');
+    box.textContent = 'Ошибка: ' + message;
+    $('meta-' + key).textContent = '—';
+  }
+
+  function resetColumn(key) {
+    if (key === 'meta') {
+      $('composed-wrap').classList.add('hidden');
+      $('composed-meta').textContent = '';
+    }
+    const box = $('answer-' + key);
+    box.classList.remove('error');
+    box.innerHTML = '';
+    const ph = document.createElement('div');
+    ph.className = 'ph';
+    ph.textContent = 'Ответ появится после запуска.';
+    box.appendChild(ph);
+    $('meta-' + key).textContent = '';
+  }
+
+  /* ---------- markdown ---------- */
+
+  function mdEscape(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function mdUrl(u) {
+    u = u.trim();
+    if (/^https?:\/\//i.test(u) || /^mailto:/i.test(u)) return u;
+    if (u[0] === '#' || u[0] === '/') return u;
+    return null;
+  }
+
+  function mdInline(raw) {
+    const codes = [];
+    const P = "\u0000";
+    let out = mdEscape(raw)
+      .replace(/`([^`\n]+)`/g, (m, c) => {
+        codes.push(c);
+        return P + "C" + (codes.length - 1) + P;
+      });
+    out = out.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+      const u = mdUrl(url);
+      return u ? '<a href="' + u + '" rel="noopener">' + label + '</a>' : label;
+    });
+    out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    out = out.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+    out = out.replace(/~~([^~\n]+)~~/g, '<s>$1</s>');
+    out = out.replace(/\u0000C(\d+)\u0000/g, (m, k) => '<code>' + codes[+k] + '</code>');
+    return out;
+  }
+
+  function renderMarkdown(src) {
+    const lines = String(src).replace(/\r\n?/g, '\n').split('\n');
+    const inline = (raw) => mdInline(raw);
+    const esc = (raw) => mdEscape(raw);
+    const out = [];
+    let i = 0;
+
+    const isFence = (t) => /^```/.test(t.trim());
+    const isHead = (t) => /^#{1,6}\s+\S/.test(t.trim());
+    const isHr = (t) => /^(-{3,}|\*{3,}|_{3,})$/.test(t.trim());
+    const isQuote = (t) => /^>/.test(t.trim());
+    const isUl = (t) => /^\s*[-*]\s+/.test(t);
+    const isOl = (t) => /^\s*\d+\.\s+/.test(t);
+    const isBlockStart = (t) => isFence(t) || isHead(t) || isHr(t) || isQuote(t) || isUl(t) || isOl(t);
+
+    while (i < lines.length) {
+      const t = lines[i];
+      const trimmed = t.trim();
+
+      if (trimmed === '') { i++; continue; }
+
+      if (isFence(t)) {
+        i++;
+        const buf = [];
+        while (i < lines.length && !isFence(lines[i])) {
+          buf.push(lines[i]);
+          i++;
+        }
+        i++;
+        out.push('<pre><code>' + esc(buf.join('\n')) + '</code></pre>');
+        continue;
+      }
+
+      if (isHead(t)) {
+        const m = trimmed.match(/^(#{1,6})\s+(.*)$/);
+        const lvl = Math.min(m[1].length, 6);
+        out.push('<h' + lvl + '>' + inline(m[2]) + '</h' + lvl + '>');
+        i++;
+        continue;
+      }
+
+      if (isHr(t)) {
+        out.push('<hr>');
+        i++;
+        continue;
+      }
+
+      if (isQuote(t)) {
+        const buf = [];
+        while (i < lines.length && /^\s*>/.test(lines[i])) {
+          buf.push(lines[i].trim().replace(/^>\s?/, ''));
+          i++;
+        }
+        out.push('<blockquote>' + inline(buf.join('<br>')) + '</blockquote>');
+        continue;
+      }
+
+      if (isUl(t) || isOl(t)) {
+        const ordered = isOl(t);
+        const items = [];
+        let cur = -1;
+        const listRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*]\s+/;
+        const otherRe = ordered ? /^\s*[-*]\s+/ : /^\s*\d+\.\s+/;
+        const itemRe = ordered ? /^\d+\.\s+/ : /^[-*]\s+/;
+
+        while (i < lines.length) {
+          const l = lines[i];
+          const ll = l.trim();
+          if (listRe.test(l)) {
+            items.push(inline(ll.replace(itemRe, '')));
+            cur = items.length - 1;
+            i++;
+            continue;
+          }
+          if (ll === '' || otherRe.test(l) || isBlockStart(l)) break;
+          if (cur >= 0) {
+            items[cur] += ' ' + inline(ll);
+            i++;
+            continue;
+          }
+          break;
+        }
+        const tag = ordered ? 'ol' : 'ul';
+        out.push('<' + tag + '>' + items.map((it) => '<li>' + it + '</li>').join('') + '</' + tag + '>');
+        continue;
+      }
+
+      const para = [];
+      while (i < lines.length) {
+        const l = lines[i];
+        const ll = l.trim();
+        if (ll === '' || isBlockStart(l)) break;
+        para.push(ll);
+        i++;
+      }
+      if (para.length) out.push('<p>' + inline(para.join(' ')) + '</p>');
+    }
+
+    return out.join('\n');
+  }
+
+  /* ---------- runners ---------- */
+
+  async function runDirect() {
+    const prompt = basePrompt();
+    $('sent-direct').textContent = prompt;
+    startLoading('direct');
+    const d = await complete(prompt);
+    if (d.error) return showError('direct', d.error);
+    showAnswer('direct', d.content, metaText(d));
+  }
+
+  async function runStep() {
+    const prompt = basePrompt() + STEP_TAIL;
+    $('sent-step').textContent = prompt;
+    startLoading('step');
+    const d = await complete(prompt);
+    if (d.error) return showError('step', d.error);
+    showAnswer('step', d.content, metaText(d));
+  }
+
+  function cleanComposed(s) {
+    return (s || '')
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('```'))
+      .join('\n')
+      .trim();
+  }
+
+  async function runMeta() {
+    const task = basePrompt();
+    const stage1 = metaComposerPrompt(task);
+    $('sent-meta').textContent = stage1;
+    startLoading('meta');
+
+    const first = await complete(stage1);
+    if (first.error) return showError('meta', first.error);
+
+    const composed = cleanComposed(first.content);
+    $('composed-wrap').classList.remove('hidden');
+    $('composed-meta').textContent = composed || '(пусто — используем исходную задачу)';
+
+    const second = await complete(composed || task);
+    if (second.error) return showError('meta', second.error);
+
+    const totalTokens = (first.total_tokens || 0) + (second.total_tokens || 0);
+    showAnswer('meta', second.content, metaText(second) + ' · токены двух запросов: ' + totalTokens);
+  }
+
+  async function runExperts() {
+    const prompt = basePrompt() + expertsTail();
+    $('sent-experts').textContent = prompt;
+    startLoading('experts');
+    const d = await complete(prompt);
+    if (d.error) return showError('experts', d.error);
+    showAnswer('experts', d.content, metaText(d));
+  }
+
+  const RUNNERS = {
+    direct: runDirect,
+    step: runStep,
+    meta: runMeta,
+    experts: runExperts,
+  };
+
+  async function run() {
+    if (!basePrompt()) {
+      promptEl.focus();
+      return;
+    }
+    runBtn.disabled = true;
+    KEYS.forEach(resetColumn);
+
+    await Promise.all(KEYS.map((key) => RUNNERS[key]()));
+
+    runBtn.disabled = false;
+  }
+
+  runBtn.addEventListener('click', run);
+</script>
+</body>
+</html>
