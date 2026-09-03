@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Playground · Температура</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1d232b;
+    --muted: #6b7280;
+    --border: #e3e6ea;
+    --base: #0f9d58;
+    --link: #1a73e8;
+    --err: #d0342c;
+    --err-soft: #fdeceb;
+    --acc-1: #2563eb;
+    --acc-2: #e37400;
+    --acc-3: #8b4fd0;
+    --acc-4: #c62828;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  header {
+    padding: 26px 28px 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  main { padding: 12px 28px 48px; width: 100%; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .prompt-card { margin-bottom: 18px; }
+  .prompt-card label { font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  textarea:focus, input:focus { outline: 2px solid var(--base); outline-offset: -1px; }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--base);
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(0.95); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .count-box { display: flex; align-items: baseline; gap: 8px; }
+  .count-box label { font-size: 13px; color: var(--text); font-weight: 500; margin: 0; }
+  .count-box input {
+    width: 64px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  .count-box input:disabled { opacity: 0.6; }
+  .note { color: var(--muted); font-size: 12.5px; }
+
+  .cols-title { display: flex; align-items: baseline; gap: 12px; margin: 4px 0 10px; flex-wrap: wrap; }
+  .cols-title h2 { margin: 0; font-size: 16px; }
+  .cols-title span { color: var(--muted); font-size: 12.5px; }
+
+  .cols { overflow-x: auto; padding-bottom: 4px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 16px;
+    min-width: 1100px;
+    align-items: stretch;
+  }
+
+  .col-head {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+  }
+  .col-t {
+    flex: 0 0 auto;
+    min-width: 54px;
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 9px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--acc);
+  }
+  .col-title { font-weight: 700; font-size: 15px; line-height: 1.25; }
+  .col-hint { color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 3px; }
+
+  .col-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .strip {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--acc);
+    background: #fafbfc;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .runs { display: flex; flex-direction: column; gap: 10px; }
+  .ph { color: #b6bcc4; font-size: 13px; }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--acc, var(--base));
+    animation: spin 0.8s linear infinite;
+    margin: 6px 0 2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-note { color: var(--muted); font-size: 12px; }
+
+  .run {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .run.error { border-color: #f3c4c0; background: var(--err-soft); }
+  .run-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .run-idx {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--acc);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .run.error .err-msg {
+    color: var(--err);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .run .meta {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    border-top: 1px dashed var(--border);
+    padding-top: 8px;
+    margin-top: 6px;
+  }
+
+  .hidden { display: none !important; }
+
+  /* Markdown answers */
+  .runs .md { font-size: 14px; line-height: 1.55; word-break: break-word; }
+  .runs .md > :first-child { margin-top: 0; }
+  .runs .md > :last-child { margin-bottom: 0; }
+  .runs .md p { margin: 0 0 8px; }
+  .runs .md h1, .runs .md h2, .runs .md h3,
+  .runs .md h4, .runs .md h5, .runs .md h6 {
+    margin: 10px 0 6px;
+    line-height: 1.3;
+    font-weight: 700;
+  }
+  .runs .md h1 { font-size: 18px; }
+  .runs .md h2 { font-size: 16px; }
+  .runs .md h3 { font-size: 15px; }
+  .runs .md h4, .runs .md h5, .runs .md h6 { font-size: 14px; }
+  .runs .md ul, .runs .md ol { margin: 4px 0 8px; padding-left: 22px; }
+  .runs .md li { margin: 2px 0; }
+  .runs .md pre {
+    background: #f4f5f7;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    margin: 0 0 8px;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre;
+  }
+  .runs .md code {
+    background: #eef0f2;
+    border-radius: 4px;
+    padding: 1px 4px;
+    font: 0.92em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .runs .md pre code { background: none; padding: 0; font-size: 12px; }
+  .runs .md blockquote {
+    margin: 0 0 8px;
+    padding: 2px 12px;
+    border-left: 3px solid var(--border);
+    color: var(--muted);
+  }
+  .runs .md hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .runs .md a { color: var(--link); }
+  .runs .md .katex-display { margin: 8px 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+  .guide { margin-top: 18px; }
+  .guide h2 { margin: 0 0 12px; font-size: 16px; }
+  .guide-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+  }
+  .guide-item {
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--acc);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .guide-item .g-t { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .guide-item p { margin: 0; font-size: 13.5px; line-height: 1.55; }
+  .guide > .note { display: block; margin-top: 12px; }
+
+  @media (max-width: 1280px) {
+    header, main { padding-left: 18px; padding-right: 18px; }
+    .grid { min-width: 1040px; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+</head>
+<body>
+
+<header>
+  <h1>🌡️ Температура генерации</h1>
+  <p>DeepSeek API · один и тот же промпт при temperature = 0, 0.7, 1.2 и максимуме 2.0 — сравните точность, живость и разнообразие ответов.</p>
+</header>
+
+<main>
+  <section class="card prompt-card">
+    <label for="prompt">Промпт — одинаковый для всех температур</label>
+    <textarea id="prompt" rows="6">Придумай название и короткий девиз для небольшой кофейни в стиле киберпанк. Название — не больше трёх слов, девиз — одно-два предложения. Верни в формате:
+
+Название: …
+Девиз: …</textarea>
+
+    <div class="actions">
+      <button id="run">Запустить сравнение</button>
+      <div class="count-box">
+        <label for="samples">Прогонов на температуру</label>
+        <input id="samples" type="number" min="1" max="6" value="3">
+      </div>
+      <span class="note" id="reqnote"></span>
+    </div>
+  </section>
+
+  <section class="card guide">
+    <h2>Как ведёт себя каждая температура</h2>
+    <div class="guide-grid">
+      <div class="guide-item" style="--acc: var(--acc-1)">
+        <div class="g-t">0.0 — точность</div>
+        <p>Жадная выборка: ответ почти детерминирован и повторяем между прогонами. Факты, извлечение и классификация данных, перевод, генерация кода, JSON и другие строгие форматы — там, где нужен один верный ответ и воспроизводимость.</p>
+      </div>
+      <div class="guide-item" style="--acc: var(--acc-2)">
+        <div class="g-t">0.7 — баланс</div>
+        <p>Золотая середина: осмысленно и живо, без лишней фантазии. Диалоги, пересказы, письма, копирайтинг «по ТЗ» — хорошая отправная точка для большинства задач.</p>
+      </div>
+      <div class="guide-item" style="--acc: var(--acc-3)">
+        <div class="g-t">1.2 — креатив</div>
+        <p>Больше случайности при сэмплировании: формулировки разнообразнее и неожиданнее, но возможны ошибки в фактах. Мозговой штурм, нейминг, сторителлинг, маркетинг.</p>
+      </div>
+      <div class="guide-item" style="--acc: var(--acc-4)">
+        <div class="g-t">2.0 — максимум</div>
+        <p>Верхняя граница диапазона: максимальная непредсказуемость — ответы часто теряют связность и факты. Используйте точечно, когда нужна именно неожиданность, а точность не важна.</p>
+      </div>
+    </div>
+    <span class="note">Диапазон temperature у DeepSeek — от 0 до 2, дефолт 1.0. Поменяйте промпт на фактологический (например, «Переведи на английский: …») — на фактах разброс между температурами виден лучше всего. Чтобы оценить разнообразие, задайте больше прогонов на температуру.</span>
+  </section>
+
+  <section>
+    <div class="cols-title">
+      <h2>Сравнение температур</h2>
+      <span>Каждая колонка запускает промпт несколько раз с одной температурой — смотрите не только ответ, но и то, как он меняется.</span>
+    </div>
+
+    <div class="cols">
+      <div class="grid">
+
+        <div class="col-head" style="--acc: var(--acc-1)">
+          <div class="col-t">0.0</div>
+          <div>
+            <div class="col-title">Точность</div>
+          </div>
+        </div>
+        <div class="col-head" style="--acc: var(--acc-2)">
+          <div class="col-t">0.7</div>
+          <div>
+            <div class="col-title">Баланс</div>
+          </div>
+        </div>
+        <div class="col-head" style="--acc: var(--acc-3)">
+          <div class="col-t">1.2</div>
+          <div>
+            <div class="col-title">Креативность</div>
+          </div>
+        </div>
+        <div class="col-head" style="--acc: var(--acc-4)">
+          <div class="col-t">2.0</div>
+          <div>
+            <div class="col-title">Максимум</div>
+          </div>
+        </div>
+
+        <div class="col-body" style="--acc: var(--acc-1)">
+          <div class="strip hidden" id="strip-t0"></div>
+          <div class="runs" id="runs-t0"><div class="ph">Ответы появятся после запуска.</div></div>
+        </div>
+        <div class="col-body" style="--acc: var(--acc-2)">
+          <div class="strip hidden" id="strip-t1"></div>
+          <div class="runs" id="runs-t1"><div class="ph">Ответы появятся после запуска.</div></div>
+        </div>
+        <div class="col-body" style="--acc: var(--acc-3)">
+          <div class="strip hidden" id="strip-t2"></div>
+          <div class="runs" id="runs-t2"><div class="ph">Ответы появятся после запуска.</div></div>
+        </div>
+        <div class="col-body" style="--acc: var(--acc-4)">
+          <div class="strip hidden" id="strip-t3"></div>
+          <div class="runs" id="runs-t3"><div class="ph">Ответы появятся после запуска.</div></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const promptEl = $('prompt');
+  const runBtn = $('run');
+  const samplesEl = $('samples');
+  const noteEl = $('reqnote');
+
+  const TEMPS = [
+    { value: 0.0, key: 't0' },
+    { value: 0.7, key: 't1' },
+    { value: 1.2, key: 't2' },
+    { value: 2.0, key: 't3' },
+  ];
+  const KEYS = TEMPS.map((t) => t.key);
+
+  let running = false;
+
+  function basePrompt() {
+    return promptEl.value.trim();
+  }
+
+  function sampleCount() {
+    let n = parseInt(samplesEl.value, 10);
+    if (!Number.isFinite(n)) n = 1;
+    return Math.min(6, Math.max(1, n));
+  }
+
+  function updateNote() {
+    const n = sampleCount();
+    noteEl.textContent = 'Запуск отправит ' + (TEMPS.length * n) + ' запросов: ' + TEMPS.length + ' температуры × ' + n + ' прогонов.';
+  }
+  samplesEl.addEventListener('input', updateNote);
+  updateNote();
+
+  async function complete(prompt, params) {
+    try {
+      const res = await fetch('/api/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, params }),
+      });
+      return await res.json();
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }
+
+  function metaText(d) {
+    const parts = ['finish_reason: ' + (d.finish_reason || '—')];
+    if (Number.isFinite(d.completion_tokens)) parts.push('completion_tokens: ' + d.completion_tokens);
+    if (Number.isFinite(d.total_tokens)) parts.push('всего токенов: ' + d.total_tokens);
+    return parts.join(' · ');
+  }
+
+  /* ---------- markdown ---------- */
+
+  function mdEscape(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function mdUrl(u) {
+    u = u.trim();
+    if (/^https?:\/\//i.test(u) || /^mailto:/i.test(u)) return u;
+    if (u[0] === '#' || u[0] === '/') return u;
+    return null;
+  }
+
+  function mdInline(raw) {
+    const codes = [];
+    const P = "\u0000";
+    let out = mdEscape(raw)
+      .replace(/`([^`\n]+)`/g, (m, c) => {
+        codes.push(c);
+        return P + "C" + (codes.length - 1) + P;
+      });
+    out = out.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+      const u = mdUrl(url);
+      return u ? '<a href="' + u + '" rel="noopener">' + label + '</a>' : label;
+    });
+    out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    out = out.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+    out = out.replace(/~~([^~\n]+)~~/g, '<s>$1</s>');
+    out = out.replace(/\u0000C(\d+)\u0000/g, (m, k) => '<code>' + codes[+k] + '</code>');
+    return out;
+  }
+
+  function renderMarkdown(src) {
+    const lines = String(src).replace(/\r\n?/g, '\n').split('\n');
+    const inline = (raw) => mdInline(raw);
+    const esc = (raw) => mdEscape(raw);
+    const out = [];
+    let i = 0;
+
+    const isFence = (t) => /^```/.test(t.trim());
+    const isHead = (t) => /^#{1,6}\s+\S/.test(t.trim());
+    const isHr = (t) => /^(-{3,}|\*{3,}|_{3,})$/.test(t.trim());
+    const isQuote = (t) => /^>/.test(t.trim());
+    const isUl = (t) => /^\s*[-*]\s+/.test(t);
+    const isOl = (t) => /^\s*\d+\.\s+/.test(t);
+    const isBlockStart = (t) => isFence(t) || isHead(t) || isHr(t) || isQuote(t) || isUl(t) || isOl(t);
+
+    while (i < lines.length) {
+      const t = lines[i];
+      const trimmed = t.trim();
+
+      if (trimmed === '') { i++; continue; }
+
+      if (isFence(t)) {
+        i++;
+        const buf = [];
+        while (i < lines.length && !isFence(lines[i])) {
+          buf.push(lines[i]);
+          i++;
+        }
+        i++;
+        out.push('<pre><code>' + esc(buf.join('\n')) + '</code></pre>');
+        continue;
+      }
+
+      if (isHead(t)) {
+        const m = trimmed.match(/^(#{1,6})\s+(.*)$/);
+        const lvl = Math.min(m[1].length, 6);
+        out.push('<h' + lvl + '>' + inline(m[2]) + '</h' + lvl + '>');
+        i++;
+        continue;
+      }
+
+      if (isHr(t)) {
+        out.push('<hr>');
+        i++;
+        continue;
+      }
+
+      if (isQuote(t)) {
+        const buf = [];
+        while (i < lines.length && /^\s*>/.test(lines[i])) {
+          buf.push(lines[i].trim().replace(/^>\s?/, ''));
+          i++;
+        }
+        out.push('<blockquote>' + inline(buf.join('<br>')) + '</blockquote>');
+        continue;
+      }
+
+      if (isUl(t) || isOl(t)) {
+        const ordered = isOl(t);
+        const items = [];
+        let cur = -1;
+        const listRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*]\s+/;
+        const otherRe = ordered ? /^\s*[-*]\s+/ : /^\s*\d+\.\s+/;
+        const itemRe = ordered ? /^\d+\.\s+/ : /^[-*]\s+/;
+
+        while (i < lines.length) {
+          const l = lines[i];
+          const ll = l.trim();
+          if (listRe.test(l)) {
+            items.push(inline(ll.replace(itemRe, '')));
+            cur = items.length - 1;
+            i++;
+            continue;
+          }
+          if (ll === '' || otherRe.test(l) || isBlockStart(l)) break;
+          if (cur >= 0) {
+            items[cur] += ' ' + inline(ll);
+            i++;
+            continue;
+          }
+          break;
+        }
+        const tag = ordered ? 'ol' : 'ul';
+        out.push('<' + tag + '>' + items.map((it) => '<li>' + it + '</li>').join('') + '</' + tag + '>');
+        continue;
+      }
+
+      const para = [];
+      while (i < lines.length) {
+        const l = lines[i];
+        const ll = l.trim();
+        if (ll === '' || isBlockStart(l)) break;
+        para.push(ll);
+        i++;
+      }
+      if (para.length) out.push('<p>' + inline(para.join(' ')) + '</p>');
+    }
+
+    return out.join('\n');
+  }
+
+  function renderMath(root) {
+    if (window.renderMathInElement) {
+      try {
+        renderMathInElement(root, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '$', right: '$', display: false },
+          ],
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+          throwOnError: false,
+        });
+      } catch (e) {
+        // оставляем исходный текст формулы, если KaTeX не смог отрендерить
+      }
+    }
+  }
+
+  /* ---------- column rendering ---------- */
+
+  function spinner() {
+    const s = document.createElement('div');
+    s.className = 'spinner';
+    return s;
+  }
+
+  function runBlock(d, idx) {
+    const wrap = document.createElement('div');
+
+    if (d.error) {
+      wrap.className = 'run error';
+      const head = document.createElement('div');
+      head.className = 'run-idx';
+      head.textContent = 'Запрос ' + (idx + 1) + ' · ошибка';
+      const msg = document.createElement('div');
+      msg.className = 'err-msg';
+      msg.textContent = d.error;
+      wrap.append(head, msg);
+      return wrap;
+    }
+
+    wrap.className = 'run';
+
+    const head = document.createElement('div');
+    head.className = 'run-head';
+    const idxEl = document.createElement('span');
+    idxEl.className = 'run-idx';
+    idxEl.textContent = 'Ответ №' + (idx + 1);
+    head.appendChild(idxEl);
+    wrap.appendChild(head);
+
+    const content = (d.content || '').trim();
+    const md = document.createElement('div');
+    md.className = 'md';
+    if (content === '') {
+      md.textContent = '(пустой ответ)';
+    } else {
+      md.innerHTML = renderMarkdown(content);
+    }
+    wrap.appendChild(md);
+    renderMath(md);
+
+    if (content !== '') {
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = metaText(d);
+      wrap.appendChild(meta);
+    }
+
+    return wrap;
+  }
+
+  function setLoading(key) {
+    $('strip-' + key).classList.add('hidden');
+    const runs = $('runs-' + key);
+    runs.innerHTML = '';
+    runs.appendChild(spinner());
+    const note = document.createElement('div');
+    note.className = 'loading-note';
+    note.textContent = 'Модель думает…';
+    runs.appendChild(note);
+  }
+
+  function renderColumn(key, results) {
+    const runs = $('runs-' + key);
+    runs.innerHTML = '';
+
+    const n = results.length;
+    if (n > 1) {
+      const texts = results
+        .filter((d) => !d.error)
+        .map((d) => (d.content || '').trim())
+        .filter((t) => t !== '');
+      const uniq = new Set(texts).size;
+      const strip = $('strip-' + key);
+      if (texts.length === 0) {
+        strip.textContent = 'Все запросы завершились ошибкой — сравнить ответы не удалось.';
+      } else if (texts.length < n) {
+        strip.textContent = 'Успешно: ' + texts.length + ' из ' + n + ' · уникальных ответов: ' + uniq;
+      } else if (uniq === 1) {
+        strip.textContent = 'Все ' + n + ' ответов идентичны — при такой температуре разнообразия нет.';
+      } else {
+        strip.textContent = 'Ответы различаются: уникальных ' + uniq + ' из ' + n + '.';
+      }
+      strip.classList.remove('hidden');
+    }
+
+    results.forEach((d, i) => runs.appendChild(runBlock(d, i)));
+  }
+
+  function runColumn(key) {
+    const t = TEMPS.find((x) => x.key === key).value;
+    const n = sampleCount();
+    const prompt = basePrompt();
+
+    const calls = [];
+    for (let j = 0; j < n; j++) {
+      calls.push(complete(prompt, { temperature: t }));
+    }
+    return Promise.all(calls).then((results) => renderColumn(key, results));
+  }
+
+  async function run() {
+    if (running) return;
+    const prompt = basePrompt();
+    if (!prompt) {
+      promptEl.focus();
+      return;
+    }
+
+    running = true;
+    runBtn.disabled = true;
+    samplesEl.disabled = true;
+
+    KEYS.forEach(setLoading);
+    await Promise.all(KEYS.map(runColumn));
+
+    running = false;
+    runBtn.disabled = false;
+    samplesEl.disabled = false;
+  }
+
+  runBtn.addEventListener('click', run);
+</script>
+</body>
+</html>
