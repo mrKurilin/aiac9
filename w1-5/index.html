@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLM Playground · Версии моделей</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1d232b;
+    --muted: #6b7280;
+    --border: #e3e6ea;
+    --base: #0f9d58;
+    --link: #1a73e8;
+    --err: #d0342c;
+    --err-soft: #fdeceb;
+    --acc-1: #2563eb;
+    --acc-2: #e37400;
+    --acc-3: #8b4fd0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  header {
+    padding: 26px 28px 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+
+  main { padding: 12px 28px 48px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .prompt-card { margin-bottom: 18px; }
+  .prompt-card label { font-weight: 600; font-size: 13px; display: block; margin-bottom: 6px; }
+  textarea {
+    width: 100%;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--base); outline-offset: -1px; }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font: inherit;
+    font-weight: 600;
+    color: #fff;
+    background: var(--base);
+    cursor: pointer;
+  }
+  button:hover { filter: brightness(0.95); }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .count-box { display: flex; align-items: baseline; gap: 8px; }
+  .count-box label { font-size: 13px; color: var(--text); font-weight: 500; margin: 0; }
+  .count-box input {
+    width: 64px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  .note { color: var(--muted); font-size: 12.5px; }
+
+  .cols-title { display: flex; align-items: baseline; gap: 12px; margin: 4px 0 10px; flex-wrap: wrap; }
+  .cols-title h2 { margin: 0; font-size: 16px; }
+  .cols-title span { color: var(--muted); font-size: 12.5px; }
+
+  .cols { overflow-x: auto; padding-bottom: 4px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 16px;
+    min-width: 1120px;
+    align-items: start;
+  }
+
+  .col { display: flex; flex-direction: column; }
+
+  .col-head {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+  }
+  .col-t {
+    flex: 0 0 auto;
+    min-width: 66px;
+    padding: 6px 8px;
+    border-radius: 9px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.2;
+    text-align: center;
+    background: var(--acc);
+  }
+  .col-main { flex: 1 1 auto; min-width: 0; }
+  .col-title { font-weight: 700; font-size: 15px; line-height: 1.25; }
+  .col-hint { color: var(--muted); font-size: 11.5px; line-height: 1.4; margin-top: 3px; }
+
+  .cfg { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .cfg select, .cfg input {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 7px;
+    font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #fafbfc;
+    color: var(--text);
+  }
+  .cfg select { font-family: inherit; }
+  .cfg .model { flex: 1 1 130px; min-width: 0; }
+
+  .price { display: flex; align-items: baseline; gap: 5px; margin-top: 6px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .price input {
+    width: 62px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 4px 6px;
+    font: inherit;
+    background: #fafbfc;
+  }
+  .price b { color: var(--text); font-weight: 600; }
+
+  .col-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    flex: 1 1 auto;
+  }
+
+  .strip {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--acc);
+    background: #fafbfc;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .runs { display: flex; flex-direction: column; gap: 10px; }
+  .ph { color: #b6bcc4; font-size: 13px; }
+  .loading { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--acc, var(--base));
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-note { color: var(--muted); font-size: 12.5px; }
+  .elapsed { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+  .run {
+    background: #fafbfc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .run.error { border-color: #f3c4c0; background: var(--err-soft); }
+  .run-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .run-idx {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--acc);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .run.error .err-msg {
+    color: var(--err);
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .run .meta {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    border-top: 1px dashed var(--border);
+    padding-top: 8px;
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 10px;
+  }
+  .meta .cost { color: var(--text); font-weight: 600; }
+  .meta .trunc { color: var(--err); font-weight: 600; }
+
+  .hidden { display: none !important; }
+
+  /* Markdown answers */
+  .runs .md { font-size: 14px; line-height: 1.55; word-break: break-word; }
+  .runs .md > :first-child { margin-top: 0; }
+  .runs .md > :last-child { margin-bottom: 0; }
+  .runs .md p { margin: 0 0 8px; }
+  .runs .md h1, .runs .md h2, .runs .md h3,
+  .runs .md h4, .runs .md h5, .runs .md h6 {
+    margin: 10px 0 6px;
+    line-height: 1.3;
+    font-weight: 700;
+  }
+  .runs .md h1 { font-size: 18px; }
+  .runs .md h2 { font-size: 16px; }
+  .runs .md h3 { font-size: 15px; }
+  .runs .md h4, .runs .md h5, .runs .md h6 { font-size: 14px; }
+  .runs .md ul, .runs .md ol { margin: 4px 0 8px; padding-left: 22px; }
+  .runs .md li { margin: 2px 0; }
+  .runs .md pre {
+    background: #f4f5f7;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    margin: 0 0 8px;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre;
+  }
+  .runs .md code {
+    background: #eef0f2;
+    border-radius: 4px;
+    padding: 1px 4px;
+    font: 0.92em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .runs .md pre code { background: none; padding: 0; font-size: 12px; }
+  .runs .md blockquote {
+    margin: 0 0 8px;
+    padding: 2px 12px;
+    border-left: 3px solid var(--border);
+    color: var(--muted);
+  }
+  .runs .md hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+  .runs .md a { color: var(--link); }
+  .runs .md .katex-display { margin: 8px 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+
+  .guide { margin-top: 18px; }
+  .guide h2 { margin: 0 0 12px; font-size: 16px; }
+  .guide-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px;
+  }
+  .guide-item {
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--acc);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .guide-item .g-t { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .guide-item p { margin: 0; font-size: 13.5px; line-height: 1.55; }
+  .guide > .note { display: block; margin-top: 12px; }
+
+  .refs { margin-top: 18px; }
+  .refs h2 { margin: 0 0 10px; font-size: 16px; }
+  .refs ul { margin: 0; padding-left: 20px; font-size: 14px; }
+  .refs li { margin: 4px 0; }
+  .refs a { color: var(--link); word-break: break-word; }
+  .refs .note { display: block; margin-top: 10px; }
+
+  .concl { margin-top: 18px; }
+  .concl h2 { margin: 0 0 6px; font-size: 16px; }
+  .concl .note { margin: 0 0 8px; display: block; }
+  .concl textarea { min-height: 70px; }
+
+  @media (max-width: 1280px) {
+    header, main { padding-left: 18px; padding-right: 18px; }
+    .grid { min-width: 1020px; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+</head>
+<body>
+
+<header>
+  <h1>🧪 Версии моделей</h1>
+  <p>Один и тот же промпт на слабой, средней и сильной моделях (DeepSeek + OpenAI) — сравните качество ответа, время, число токенов и стоимость.</p>
+</header>
+
+<main>
+  <section class="card prompt-card">
+    <label for="prompt">Промпт — одинаковый для всех моделей</label>
+    <textarea id="prompt" rows="6">Ты — senior-разработчик, проводишь собеседование. Напиши на Python функцию, которая проверяет, является ли строка палиндромом с учётом только буквенно-цифровых символов и без учёта регистра. Запрещено использовать срезы строк и встроенные функции разворота. Объясни алгоритм, оцени сложность по времени и памяти и приведи два граничных примера.</textarea>
+
+    <div class="actions">
+      <button id="run">Запустить сравнение</button>
+      <div class="count-box">
+        <label for="samples">Прогонов на модель</label>
+        <input id="samples" type="number" min="1" max="6" value="1">
+      </div>
+      <div class="count-box">
+        <label for="maxTokens">Максимум токенов</label>
+        <input id="maxTokens" type="number" min="128" max="16000" value="2000">
+      </div>
+      <span class="note" id="reqnote"></span>
+    </div>
+  </section>
+
+  <section class="card guide">
+    <h2>Что такое «слабая / средняя / сильная» здесь</h2>
+    <div class="guide-grid">
+      <div class="guide-item" style="--acc: var(--acc-1)">
+        <div class="g-t">Слабая · младшая версия</div>
+        <p>Лёгкая и быстрая ступень семейства: справляется с рутиной, заметно хуже на сложных рассуждениях и длинном коде. По умолчанию <b>gpt-5.6-luna</b>.</p>
+      </div>
+      <div class="guide-item" style="--acc: var(--acc-2)">
+        <div class="g-t">Средняя · main-stream</div>
+        <p>Флагманская открытая модель DeepSeek (<b>deepseek-chat</b>, V3): по бенчмаркам близка к топ-проприетарным, при этом дешевле «младших» моделей конкурентов. Проверьте — всегда ли цена идёт рука об руку с силой.</p>
+      </div>
+      <div class="guide-item" style="--acc: var(--acc-3)">
+        <div class="g-t">Сильная · флагман</div>
+        <p>Топовая модель (<b>gpt-5.6-sol</b>): аккуратнее следует требованиям, лучше рассуждает и пишет код. Платите за это временем ответа и токенами.</p>
+      </div>
+    </div>
+    <span class="note">Лестница «слабая → сильная» условна и зависит от задачи — задача страницы как раз проверить её на своём промпте. Модель и провайдера в каждой колонке можно поменять (например, поставить deepseek-reasoner), цену за 1M токенов — поправить под текущую.</span>
+  </section>
+
+  <section>
+    <div class="cols-title">
+      <h2>Сравнение моделей</h2>
+      <span>Колонки запускаются параллельно. Смотрите не только ответ, но и метрики под ним.</span>
+    </div>
+
+    <div class="cols">
+      <div class="grid">
+
+        <div class="col">
+          <div class="col-head" style="--acc: var(--acc-1)">
+            <div class="col-t">Слабая</div>
+            <div class="col-main">
+              <div class="col-hint">младший класс — быстрая и дешёвая, слабее на сложном</div>
+              <div class="cfg">
+                <select class="prov" data-col="c0">
+                  <option value="openai">OpenAI</option>
+                  <option value="deepseek">DeepSeek</option>
+                </select>
+                <input class="model" data-col="c0" value="gpt-5.6-luna" spellcheck="false">
+              </div>
+              <div class="price">
+                <span>цена $/1M:</span>
+                <input class="price-in" data-col="c0" type="number" min="0" step="0.01" value="0.20">
+                <span>вх</span>
+                <input class="price-out" data-col="c0" type="number" min="0" step="0.01" value="1.20">
+                <span>вых</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-body" style="--acc: var(--acc-1)">
+            <div class="strip hidden" id="strip-c0"></div>
+            <div class="runs" id="runs-c0"><div class="ph">Ответ появится после запуска.</div></div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="col-head" style="--acc: var(--acc-2)">
+            <div class="col-t">Средняя</div>
+            <div class="col-main">
+              <div class="col-hint">сильная open-модель DeepSeek — часто дешевле «слабой»</div>
+              <div class="cfg">
+                <select class="prov" data-col="c1">
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+                <input class="model" data-col="c1" value="deepseek-chat" spellcheck="false">
+              </div>
+              <div class="price">
+                <span>цена $/1M:</span>
+                <input class="price-in" data-col="c1" type="number" min="0" step="0.01" value="0.27">
+                <span>вх</span>
+                <input class="price-out" data-col="c1" type="number" min="0" step="0.01" value="1.10">
+                <span>вых</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-body" style="--acc: var(--acc-2)">
+            <div class="strip hidden" id="strip-c1"></div>
+            <div class="runs" id="runs-c1"><div class="ph">Ответ появится после запуска.</div></div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="col-head" style="--acc: var(--acc-3)">
+            <div class="col-t">Сильная</div>
+            <div class="col-main">
+              <div class="col-hint">флагман — лучше на сложных задачах, но дороже и медленнее</div>
+              <div class="cfg">
+                <select class="prov" data-col="c2">
+                  <option value="openai">OpenAI</option>
+                  <option value="deepseek">DeepSeek</option>
+                </select>
+                <input class="model" data-col="c2" value="gpt-5.6-sol" spellcheck="false">
+              </div>
+              <div class="price">
+                <span>цена $/1M:</span>
+                <input class="price-in" data-col="c2" type="number" min="0" step="0.01" value="4">
+                <span>вх</span>
+                <input class="price-out" data-col="c2" type="number" min="0" step="0.01" value="20">
+                <span>вых</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-body" style="--acc: var(--acc-3)">
+            <div class="strip hidden" id="strip-c2"></div>
+            <div class="runs" id="runs-c2"><div class="ph">Ответ появится после запуска.</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="card refs">
+    <h2>Ссылки</h2>
+    <ul>
+      <li>DeepSeek API: модели и цены — <a href="https://api-docs.deepseek.com" rel="noopener">api-docs.deepseek.com</a> (раздел pricing), формат OpenAI-совместимый, endpoint <code>https://api.deepseek.com/chat/completions</code></li>
+      <li>OpenAI API: модели и цены — <a href="https://platform.openai.com/docs/models" rel="noopener">platform.openai.com/docs/models</a>; формат Responses API, endpoint <code>https://api.openai.com/v1/responses</code></li>
+      <li>Ключи задаются переменными окружения: <code>DEEPSEEK_API_KEY</code> и <code>OPENAI_API_KEY</code></li>
+    </ul>
+    <span class="note">Стоимость считается как (входные токены × цена входа + выходные токены × цена выхода) по редактируемым ставкам в колонках. Без учёта кэширования промптов, скидок и региональных цен — ориентир, а не чек.</span>
+  </section>
+
+  <section class="card concl">
+    <h2>Ваш вывод</h2>
+    <span class="note">Запишите сюда короткое наблюдение о различиях моделей — качество, скорость, токены, стоимость. Оно пригодится для отчёта.</span>
+    <textarea id="concl" placeholder="Слабая: … / Средняя: … / Сильная: … → для каких задач какую модель брать"></textarea>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const promptEl = $('prompt');
+  const runBtn = $('run');
+  const samplesEl = $('samples');
+  const maxEl = $('maxTokens');
+  const noteEl = $('reqnote');
+
+  const COL_KEYS = ['c0', 'c1', 'c2'];
+
+  // Справочные ставки $ за 1M токенов (вход/выход) — подставляются при выборе известной модели.
+  const PRICES = {
+    'deepseek-chat':        [0.27, 1.10],
+    'deepseek-reasoner':    [0.55, 2.19],
+    'deepseek-v4-flash':    [0.14, 0.28],
+    'deepseek-v4-pro':      [0.435, 0.87],
+    'gpt-5.6-luna':         [0.20, 1.20],
+    'gpt-5.6-terra':        [2, 12],
+    'gpt-5.6-sol':          [4, 20],
+  };
+
+  let running = false;
+
+  function promptText() {
+    return promptEl.value.trim();
+  }
+
+  function numVal(el, dflt) {
+    let n = parseFloat(el.value);
+    if (!Number.isFinite(n)) n = dflt;
+    return n;
+  }
+
+  function sampleCount() {
+    let n = parseInt(samplesEl.value, 10);
+    if (!Number.isFinite(n)) n = 1;
+    return Math.min(6, Math.max(1, n));
+  }
+
+  function maxTokens() {
+    let n = parseInt(maxEl.value, 10);
+    if (!Number.isFinite(n)) n = 2000;
+    return Math.min(16000, Math.max(128, n));
+  }
+
+  function colConfig(key) {
+    const prov = document.querySelector('.prov[data-col="' + key + '"]');
+    const model = document.querySelector('.model[data-col="' + key + '"]');
+    const pin = document.querySelector('.price-in[data-col="' + key + '"]');
+    const pout = document.querySelector('.price-out[data-col="' + key + '"]');
+    return {
+      provider: prov.value,
+      model: model.value.trim(),
+      priceIn: parseFloat(pin.value),
+      priceOut: parseFloat(pout.value),
+    };
+  }
+
+  document.querySelectorAll('.model').forEach((input) => {
+    input.addEventListener('input', () => {
+      const p = PRICES[input.value.trim()];
+      if (!p) return;
+      const key = input.dataset.col;
+      document.querySelector('.price-in[data-col="' + key + '"]').value = p[0];
+      document.querySelector('.price-out[data-col="' + key + '"]').value = p[1];
+    });
+  });
+
+  function updateNote() {
+    const n = sampleCount();
+    noteEl.textContent = 'Запуск отправит ' + (COL_KEYS.length * n) + ' запросов: 3 модели × ' + n + ' прогон(ов). Максимум ответа — ' + maxTokens() + ' токенов.';
+  }
+  samplesEl.addEventListener('input', updateNote);
+  maxEl.addEventListener('input', updateNote);
+  updateNote();
+
+  async function complete(provider, model, prompt, maxTok) {
+    try {
+      const res = await fetch('/api/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, model, prompt, max_tokens: maxTok }),
+      });
+      return await res.json();
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }
+
+  function fmtMs(ms) {
+    if (ms < 1000) return ms.toFixed(0) + ' мс';
+    return (ms / 1000).toFixed(2) + ' с';
+  }
+
+  function fmtCost(v) {
+    if (!Number.isFinite(v)) return '—';
+    if (v === 0) return '$0';
+    const digits = v < 0.01 ? 6 : 4;
+    let s = '$' + v.toFixed(digits);
+    s = s.replace(/0+$/, '');
+    s = s.replace(/\.$/, '');
+    return s;
+  }
+
+  function costOf(d, cfg) {
+    if (!Number.isFinite(cfg.priceIn) || !Number.isFinite(cfg.priceOut)) return null;
+    if (!Number.isFinite(d.prompt_tokens) || !Number.isFinite(d.completion_tokens)) return null;
+    return (d.prompt_tokens * cfg.priceIn + d.completion_tokens * cfg.priceOut) / 1e6;
+  }
+
+  /* ---------- markdown ---------- */
+
+  function mdEscape(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function mdUrl(u) {
+    u = u.trim();
+    if (/^https?:\/\//i.test(u) || /^mailto:/i.test(u)) return u;
+    if (u[0] === '#' || u[0] === '/') return u;
+    return null;
+  }
+
+  function mdInline(raw) {
+    const codes = [];
+    const P = "\u0000";
+    let out = mdEscape(raw)
+      .replace(/`([^`\n]+)`/g, (m, c) => {
+        codes.push(c);
+        return P + "C" + (codes.length - 1) + P;
+      });
+    out = out.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (m, label, url) => {
+      const u = mdUrl(url);
+      return u ? '<a href="' + u + '" rel="noopener">' + label + '</a>' : label;
+    });
+    out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    out = out.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    out = out.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+    out = out.replace(/~~([^~\n]+)~~/g, '<s>$1</s>');
+    out = out.replace(/\u0000C(\d+)\u0000/g, (m, k) => '<code>' + codes[+k] + '</code>');
+    return out;
+  }
+
+  function renderMarkdown(src) {
+    const lines = String(src).replace(/\r\n?/g, '\n').split('\n');
+    const inline = (raw) => mdInline(raw);
+    const esc = (raw) => mdEscape(raw);
+    const out = [];
+    let i = 0;
+
+    const isFence = (t) => /^```/.test(t.trim());
+    const isHead = (t) => /^#{1,6}\s+\S/.test(t.trim());
+    const isHr = (t) => /^(-{3,}|\*{3,}|_{3,})$/.test(t.trim());
+    const isQuote = (t) => /^>/.test(t.trim());
+    const isUl = (t) => /^\s*[-*]\s+/.test(t);
+    const isOl = (t) => /^\s*\d+\.\s+/.test(t);
+    const isBlockStart = (t) => isFence(t) || isHead(t) || isHr(t) || isQuote(t) || isUl(t) || isOl(t);
+
+    while (i < lines.length) {
+      const t = lines[i];
+      const trimmed = t.trim();
+
+      if (trimmed === '') { i++; continue; }
+
+      if (isFence(t)) {
+        i++;
+        const buf = [];
+        while (i < lines.length && !isFence(lines[i])) {
+          buf.push(lines[i]);
+          i++;
+        }
+        i++;
+        out.push('<pre><code>' + esc(buf.join('\n')) + '</code></pre>');
+        continue;
+      }
+
+      if (isHead(t)) {
+        const m = trimmed.match(/^(#{1,6})\s+(.*)$/);
+        const lvl = Math.min(m[1].length, 6);
+        out.push('<h' + lvl + '>' + inline(m[2]) + '</h' + lvl + '>');
+        i++;
+        continue;
+      }
+
+      if (isHr(t)) {
+        out.push('<hr>');
+        i++;
+        continue;
+      }
+
+      if (isQuote(t)) {
+        const buf = [];
+        while (i < lines.length && /^\s*>/.test(lines[i])) {
+          buf.push(lines[i].trim().replace(/^>\s?/, ''));
+          i++;
+        }
+        out.push('<blockquote>' + inline(buf.join('<br>')) + '</blockquote>');
+        continue;
+      }
+
+      if (isUl(t) || isOl(t)) {
+        const ordered = isOl(t);
+        const items = [];
+        let cur = -1;
+        const listRe = ordered ? /^\s*\d+\.\s+/ : /^\s*[-*]\s+/;
+        const otherRe = ordered ? /^\s*[-*]\s+/ : /^\s*\d+\.\s+/;
+        const itemRe = ordered ? /^\d+\.\s+/ : /^[-*]\s+/;
+
+        while (i < lines.length) {
+          const l = lines[i];
+          const ll = l.trim();
+          if (listRe.test(l)) {
+            items.push(inline(ll.replace(itemRe, '')));
+            cur = items.length - 1;
+            i++;
+            continue;
+          }
+          if (ll === '' || otherRe.test(l) || isBlockStart(l)) break;
+          if (cur >= 0) {
+            items[cur] += ' ' + inline(ll);
+            i++;
+            continue;
+          }
+          break;
+        }
+        const tag = ordered ? 'ol' : 'ul';
+        out.push('<' + tag + '>' + items.map((it) => '<li>' + it + '</li>').join('') + '</' + tag + '>');
+        continue;
+      }
+
+      const para = [];
+      while (i < lines.length) {
+        const l = lines[i];
+        const ll = l.trim();
+        if (ll === '' || isBlockStart(l)) break;
+        para.push(ll);
+        i++;
+      }
+      if (para.length) out.push('<p>' + inline(para.join(' ')) + '</p>');
+    }
+
+    return out.join('\n');
+  }
+
+  function renderMath(root) {
+    if (window.renderMathInElement) {
+      try {
+        renderMathInElement(root, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '\\[', right: '\\]', display: true },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '$', right: '$', display: false },
+          ],
+          ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+          throwOnError: false,
+        });
+      } catch (e) {
+        // оставляем исходный текст формулы, если KaTeX не смог отрендерить
+      }
+    }
+  }
+
+  /* ---------- rendering ---------- */
+
+  function setLoading(key) {
+    $('strip-' + key).classList.add('hidden');
+    const runs = $('runs-' + key);
+    runs.innerHTML = '';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'loading';
+    wrap.appendChild(Object.assign(document.createElement('div'), { className: 'spinner' }));
+
+    const note = document.createElement('div');
+    note.className = 'loading-note';
+    note.textContent = 'Модель думает…';
+    wrap.appendChild(note);
+
+    const elapsed = document.createElement('div');
+    elapsed.className = 'elapsed';
+    elapsed.id = 'elapsed-' + key;
+    elapsed.textContent = '⏱ 0.0 с';
+    wrap.appendChild(elapsed);
+
+    runs.appendChild(wrap);
+    return { el: elapsed, start: performance.now() };
+  }
+
+  function metaEl(d, cfg) {
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+
+    const parts = [];
+    const time = document.createElement('span');
+    time.textContent = 'время: ' + fmtMs(d.ms);
+    parts.push(time);
+
+    const toks = document.createElement('span');
+    toks.textContent = 'вход: ' + d.prompt_tokens + ' · выход: ' + d.completion_tokens + ' · всего: ' + d.total_tokens;
+    parts.push(toks);
+
+    const speed = document.createElement('span');
+    const sec = d.ms > 0 ? d.ms / 1000 : 0;
+    speed.textContent = sec > 0 ? Math.round(d.completion_tokens / sec) + ' ток/с' : '—';
+    parts.push(speed);
+
+    const cost = costOf(d, cfg);
+    const costEl = document.createElement('span');
+    costEl.className = 'cost';
+    costEl.textContent = '≈ ' + fmtCost(cost) + ' (вход+выход)';
+    parts.push(costEl);
+
+    const fr = d.finish_reason || '';
+    if (fr === 'length' || fr === 'max_tokens') {
+      const trunc = document.createElement('span');
+      trunc.className = 'trunc';
+      trunc.textContent = '⚠ ответ обрезан по лимиту токенов';
+      parts.push(trunc);
+    } else if (fr) {
+      const fin = document.createElement('span');
+      fin.textContent = 'finish: ' + fr;
+      parts.push(fin);
+    }
+
+    parts.forEach((el) => meta.appendChild(el));
+    return meta;
+  }
+
+  function runBlock(d, idx, cfg) {
+    const wrap = document.createElement('div');
+
+    if (d.error) {
+      wrap.className = 'run error';
+      const head = document.createElement('div');
+      head.className = 'run-idx';
+      head.textContent = 'Прогон ' + (idx + 1) + ' · ошибка';
+      const msg = document.createElement('div');
+      msg.className = 'err-msg';
+      msg.textContent = d.error;
+      wrap.append(head, msg);
+      return wrap;
+    }
+
+    wrap.className = 'run';
+
+    const head = document.createElement('div');
+    head.className = 'run-head';
+    const idxEl = document.createElement('span');
+    idxEl.className = 'run-idx';
+    idxEl.textContent = 'Ответ №' + (idx + 1);
+    head.appendChild(idxEl);
+    wrap.appendChild(head);
+
+    const content = (d.content || '').trim();
+    const md = document.createElement('div');
+    md.className = 'md';
+    if (content === '') {
+      md.textContent = '(пустой ответ)';
+    } else {
+      md.innerHTML = renderMarkdown(content);
+    }
+    wrap.appendChild(md);
+    renderMath(md);
+
+    if (content !== '') {
+      wrap.appendChild(metaEl(d, cfg));
+    }
+
+    return wrap;
+  }
+
+  function renderColumn(key, results, cfg) {
+    const runs = $('runs-' + key);
+    runs.innerHTML = '';
+
+    const ok = results.filter((d) => !d.error);
+    const n = results.length;
+    const strip = $('strip-' + key);
+
+    if (ok.length === 0) {
+      strip.textContent = 'Все запросы завершились ошибкой — сравнить не удалось.';
+    } else {
+      const avg = ok.reduce((s, d) => s + d.ms, 0) / ok.length;
+      const tokIn = ok.reduce((s, d) => s + (Number.isFinite(d.prompt_tokens) ? d.prompt_tokens : 0), 0);
+      const tokOut = ok.reduce((s, d) => s + (Number.isFinite(d.completion_tokens) ? d.completion_tokens : 0), 0);
+      const totCost = ok.reduce((s, d) => s + (costOf(d, cfg) || 0), 0);
+      const texts = ok.map((d) => (d.content || '').trim()).filter((t) => t !== '');
+      const uniq = new Set(texts).size;
+
+      let text = 'успешно ' + ok.length + ' из ' + n +
+        ' · среднее время ' + fmtMs(avg) +
+        ' · токенов: ' + tokIn + ' вх / ' + tokOut + ' вых' +
+        ' · суммарно ≈ ' + fmtCost(totCost);
+      if (n > 1 && ok.length === n && uniq === 1) {
+        text += ' · все ответы идентичны';
+      } else if (n > 1 && texts.length > 0 && uniq > 0) {
+        text += ' · уникальных ответов: ' + uniq;
+      }
+      strip.textContent = text;
+    }
+    strip.classList.remove('hidden');
+
+    results.forEach((d, i) => runs.appendChild(runBlock(d, i, cfg)));
+  }
+
+  async function runColumn(key, cfg) {
+    const samples = sampleCount();
+    const timer = setLoading(key);
+    const tick = setInterval(() => {
+      timer.el.textContent = '⏱ ' + fmtMs(performance.now() - timer.start);
+    }, 100);
+
+    const results = [];
+    for (let i = 0; i < samples; i++) {
+      const t0 = performance.now();
+      const d = await complete(cfg.provider, cfg.model, cfg.prompt, cfg.maxTok);
+      d.ms = performance.now() - t0;
+      results.push(d);
+    }
+
+    clearInterval(tick);
+    timer.el.textContent = '⏱ ' + fmtMs(performance.now() - timer.start);
+    renderColumn(key, results, cfg);
+  }
+
+  async function run() {
+    if (running) return;
+    const prompt = promptText();
+    if (!prompt) {
+      promptEl.focus();
+      return;
+    }
+
+    const maxTok = maxTokens();
+    const cfg = COL_KEYS.map((key) => Object.assign(colConfig(key), { prompt, maxTok, key }));
+
+    running = true;
+    runBtn.disabled = true;
+    samplesEl.disabled = true;
+    maxEl.disabled = true;
+
+    await Promise.all(cfg.map((c) => runColumn(c.key, c)));
+
+    running = false;
+    runBtn.disabled = false;
+    samplesEl.disabled = false;
+    maxEl.disabled = false;
+  }
+
+  runBtn.addEventListener('click', run);
+</script>
+</body>
+</html>
