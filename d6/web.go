@@ -27,13 +27,26 @@ func newWebApp(client ChatClient, system, password string) *webApp {
 
 func (a *webApp) routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", a.index)
-	mux.HandleFunc("POST /api/chat", a.chat)
-	mux.HandleFunc("POST /api/reset", a.reset)
+	// Method-aware ServeMux patterns require Go 1.22. Register paths separately
+	// so the application also works with the Go 1.21 version from go.mod.
+	mux.HandleFunc("/", allowMethod(http.MethodGet, a.index))
+	mux.HandleFunc("/api/chat", allowMethod(http.MethodPost, a.chat))
+	mux.HandleFunc("/api/reset", allowMethod(http.MethodPost, a.reset))
 	if a.password == "" {
 		return mux
 	}
 	return a.basicAuth(mux)
+}
+
+func allowMethod(method string, handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != method {
+			w.Header().Set("Allow", method)
+			http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
+			return
+		}
+		handler(w, r)
+	}
 }
 
 func (a *webApp) basicAuth(next http.Handler) http.Handler {
