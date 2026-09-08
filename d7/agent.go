@@ -257,7 +257,7 @@ func (c *DeepSeekClient) CompleteStream(ctx context.Context, messages []Message,
 		}
 		if err != nil {
 			if err == io.EOF {
-				break
+				return "", fmt.Errorf("поток DeepSeek оборвался до [DONE]")
 			}
 			return "", fmt.Errorf("читать поток DeepSeek: %w", err)
 		}
