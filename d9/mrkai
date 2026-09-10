@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+# Resolve the installed symlink to keep data relative to the d9 project.
+script="$0"
+while [ -L "$script" ]; do
+  target=$(readlink "$script")
+  case "$target" in
+    /*) script="$target" ;;
+    *) script="$(dirname "$script")/$target" ;;
+  esac
+done
+cd "$(CDPATH= cd -- "$(dirname "$script")" && pwd)"
+exec go run . -cli "$@"
