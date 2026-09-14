@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MrKai · Memory Layers</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0b0d12;
+    --surface: #121620;
+    --surface-2: #181d29;
+    --line: #293143;
+    --text: #e7ebf3;
+    --muted: #9099aa;
+    --violet: #a78bfa;
+    --cyan: #67e8f9;
+    --amber: #fbbf24;
+    --green: #6ee7b7;
+    --danger: #fb7185;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(103,232,249,.08), transparent 30rem),
+      radial-gradient(circle at 100% 100%, rgba(167,139,250,.09), transparent 34rem),
+      var(--bg);
+    color: var(--text);
+    font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+  .shell { height: 100vh; display: grid; grid-template-rows: auto minmax(0,1fr); }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    padding: 16px 22px; border-bottom: 1px solid var(--line);
+    background: rgba(11,13,18,.78); backdrop-filter: blur(16px);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; }
+  .orb {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: conic-gradient(from 40deg, var(--violet), var(--cyan), var(--green), var(--violet));
+    box-shadow: 0 0 22px rgba(103,232,249,.24);
+  }
+  h1 { font-size: 15px; margin: 0; letter-spacing: .02em; }
+  header p { margin: 1px 0 0; color: var(--muted); font-size: 12px; }
+  .legend { color: var(--muted); font-size: 12px; }
+  .workspace { min-height: 0; display: grid; grid-template-columns: minmax(0,1fr) 390px; }
+  .chat { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; }
+  .chat-head { padding: 15px 22px; border-bottom: 1px solid var(--line); }
+  .chat-head b { font-size: 13px; }
+  .chat-head span { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  #messages { overflow: auto; padding: 22px max(22px, calc((100% - 780px)/2)); }
+  .empty { color: var(--muted); text-align: center; margin-top: 18vh; }
+  .empty strong { display: block; color: var(--text); font-size: 18px; margin-bottom: 6px; }
+  .message { max-width: 84%; margin: 0 0 18px; }
+  .message.user { margin-left: auto; }
+  .role { color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 5px; }
+  .message.user .role { text-align: right; }
+  .bubble {
+    white-space: pre-wrap; overflow-wrap: anywhere; padding: 11px 14px;
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px 16px 16px 16px;
+  }
+  .user .bubble {
+    background: linear-gradient(135deg, rgba(103,232,249,.13), rgba(167,139,250,.14));
+    border-color: rgba(103,232,249,.25); border-radius: 16px 5px 16px 16px;
+  }
+  .assistant .bubble { white-space: normal; }
+  .assistant .bubble p { margin: 0 0 .75em; }
+  .assistant .bubble p:last-child { margin-bottom: 0; }
+  .assistant .bubble h1, .assistant .bubble h2, .assistant .bubble h3 { margin: .9em 0 .35em; line-height: 1.25; }
+  .assistant .bubble h1:first-child, .assistant .bubble h2:first-child, .assistant .bubble h3:first-child { margin-top: 0; }
+  .assistant .bubble pre { overflow-x: auto; padding: 10px; background: #090b10; border: 1px solid var(--line); border-radius: 8px; }
+  .assistant .bubble code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--cyan); }
+  .assistant .bubble :not(pre) > code { padding: 1px 5px; background: #090b10; border-radius: 5px; }
+  .assistant .bubble ul, .assistant .bubble ol { padding-left: 22px; }
+  .assistant .bubble blockquote { margin: .7em 0; padding-left: 11px; border-left: 3px solid var(--violet); color: var(--muted); }
+  .assistant .bubble a { color: var(--cyan); }
+  .composer { padding: 15px 22px 19px; border-top: 1px solid var(--line); position: relative; }
+  .compose-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; max-width: 900px; margin: auto; }
+  textarea, input, select {
+    width: 100%; border: 1px solid var(--line); color: var(--text); background: var(--surface);
+    font: inherit; border-radius: 10px; padding: 10px 12px;
+  }
+  textarea { min-height: 50px; max-height: 150px; resize: vertical; }
+  textarea:focus, input:focus, select:focus { outline: none; border-color: var(--cyan); }
+  button {
+    border: 0; border-radius: 10px; padding: 9px 14px; color: #071016;
+    background: var(--cyan); font: 600 13px inherit; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .45; cursor: wait; }
+  button.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); }
+  button.danger { color: var(--danger); }
+  #commandMenu {
+    display: none; position: absolute; z-index: 10; left: 22px; right: 22px; bottom: 100%;
+    max-height: 230px; overflow-y: auto; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px 12px 0 0; box-shadow: 0 -16px 40px rgba(0,0,0,.32); padding: 5px;
+  }
+  #commandMenu.open { display: block; }
+  #commandMenu div { padding: 7px 9px; border-radius: 7px; color: var(--muted); cursor: pointer; }
+  #commandMenu div.active, #commandMenu div:hover { background: var(--surface-2); color: var(--text); }
+  .sidebar { min-height: 0; overflow: auto; padding: 14px; border-left: 1px solid var(--line); background: rgba(18,22,32,.72); }
+  .side-title { display: flex; justify-content: space-between; align-items: end; padding: 2px 2px 12px; }
+  .side-title b { font-size: 13px; }
+  .side-title span { color: var(--muted); font-size: 11px; }
+  .layer { border: 1px solid var(--line); border-radius: 14px; margin-bottom: 12px; overflow: hidden; background: var(--surface); }
+  .layer-head { padding: 11px 12px 8px; border-bottom: 1px solid var(--line); }
+  .layer-title { display: flex; justify-content: space-between; gap: 8px; font-weight: 650; }
+  .layer-title small { color: var(--muted); font-weight: 400; }
+  .layer p { color: var(--muted); font-size: 11px; margin: 3px 0 0; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; background: currentColor; }
+  .short .layer-title { color: var(--cyan); }
+  .working .layer-title { color: var(--amber); }
+  .long .layer-title { color: var(--violet); }
+  .entries { padding: 8px; min-height: 42px; }
+  .entry { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: start; padding: 6px 5px; border-bottom: 1px solid rgba(41,49,67,.65); }
+  .entry:last-child { border-bottom: 0; }
+  .entry b { display: block; font-size: 11px; color: var(--muted); }
+  .entry span { display: block; overflow-wrap: anywhere; font-size: 12px; }
+  .entry button { padding: 2px 6px; font-size: 14px; background: transparent; color: var(--muted); }
+  .entry button:hover { color: var(--danger); }
+  .none { color: var(--muted); font-size: 11px; padding: 6px; }
+  .memory-form { border: 1px solid var(--line); border-radius: 14px; padding: 11px; background: var(--surface); }
+  .memory-form b { display: block; font-size: 12px; margin-bottom: 9px; }
+  .form-grid { display: grid; grid-template-columns: 105px 1fr; gap: 8px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  #notice { min-height: 20px; color: var(--muted); font-size: 11px; padding-top: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  #notice.error { color: var(--danger); }
+  .typing::after { content: "●"; color: var(--green); margin-left: 7px; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .2; } }
+  @media (max-width: 850px) {
+    .workspace { grid-template-columns: 1fr; grid-template-rows: minmax(55vh,1fr) auto; overflow: auto; }
+    .chat { min-height: 55vh; }
+    .sidebar { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+    .shell { height: auto; min-height: 100vh; }
+    .legend { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand"><div class="orb"></div><div><h1>MrKai · Memory Layers</h1><p>Память видима, разделена и управляется явно</p></div></div>
+    <div class="legend">short → диалог · working → задача · long → профиль и знания</div>
+  </header>
+  <div class="workspace">
+    <section class="chat">
+      <div class="chat-head"><b>Текущий диалог</b><span id="contextLabel">контекст из 3 слоёв</span></div>
+      <main id="messages"></main>
+      <div class="composer">
+        <div id="commandMenu"></div>
+        <div class="compose-row">
+          <textarea id="prompt" placeholder="Сообщение или /команда…  Enter — отправить, Shift+Enter — новая строка"></textarea>
+          <button id="send">Отправить</button>
+        </div>
+      </div>
+    </section>
+    <aside class="sidebar">
+      <div class="side-title"><b>Окна памяти</b><span>что попадёт в следующий запрос</span></div>
+      <section class="layer short">
+        <div class="layer-head"><div class="layer-title"><span><i class="dot"></i>Краткосрочная</span><small id="shortCount"></small></div><p>Автоматически извлечённые временные факты диалога</p></div>
+        <div class="entries" id="shortEntries"></div>
+      </section>
+      <section class="layer working">
+        <div class="layer-head"><div class="layer-title"><span><i class="dot"></i>Рабочая</span><small id="workingCount"></small></div><p>Цель, ограничения и данные текущей задачи</p></div>
+        <div class="entries" id="workingEntries"></div>
+      </section>
+      <section class="layer long">
+        <div class="layer-head"><div class="layer-title"><span><i class="dot"></i>Долговременная</span><small id="longCount"></small></div><p>Профиль, принятые решения и устойчивые знания</p></div>
+        <div class="entries" id="longEntries"></div>
+      </section>
+      <form class="memory-form" id="memoryForm">
+        <b>Сохранить явно <span style="color:var(--muted);font-weight:400">· автоизвлечение включено</span></b>
+        <div class="form-grid">
+          <select id="layer" aria-label="Слой памяти">
+            <option value="short">short</option>
+            <option value="working" selected>working</option>
+            <option value="long">long</option>
+          </select>
+          <input id="key" placeholder="Ключ, например deadline">
+          <input class="full" id="value" placeholder="Значение">
+          <button class="full" type="submit">Сохранить в выбранный слой</button>
+        </div>
+        <div id="notice"></div>
+      </form>
+    </aside>
+  </div>
+</div>
+<script>
+const els = {
+  messages: document.getElementById("messages"),
+  prompt: document.getElementById("prompt"),
+  send: document.getElementById("send"),
+  form: document.getElementById("memoryForm"),
+  layer: document.getElementById("layer"),
+  key: document.getElementById("key"),
+  value: document.getElementById("value"),
+  notice: document.getElementById("notice")
+};
+let state = null;
+let busy = false;
+let commandItems = [];
+let commandIndex = -1;
+let inputHistory = [];
+let historyIndex = -1;
+
+const COMMANDS = [
+  { label: "/remember <layer> <key> <value> — сохранить факт", value: "/remember ", submit: false },
+  { label: "/forget <layer> <key> — удалить факт", value: "/forget ", submit: false },
+  { label: "/memory [layer] — показать память", value: "/memory", submit: true },
+  { label: "/clear <layer|all> — очистить память", value: "/clear ", submit: false },
+  { label: "/reset — очистить диалог и всю память", value: "/reset", submit: true },
+  { label: "/info — справка", value: "/info", submit: true },
+  { label: "/exit — подсказка по завершению", value: "/exit", submit: true }
+];
+
+function node(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+function appendInlineMarkdown(parent, text) {
+  const pattern = /(`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\))/g;
+  let cursor = 0;
+  for (const match of text.matchAll(pattern)) {
+    parent.append(document.createTextNode(text.slice(cursor, match.index)));
+    const fragment = match[0];
+    if (fragment.startsWith("`")) {
+      parent.append(node("code", "", fragment.slice(1, -1)));
+    } else if (fragment.startsWith("**")) {
+      parent.append(node("strong", "", fragment.slice(2, -2)));
+    } else if (fragment.startsWith("*")) {
+      parent.append(node("em", "", fragment.slice(1, -1)));
+    } else {
+      const split = fragment.indexOf("](");
+      const link = node("a", "", fragment.slice(1, split));
+      link.href = fragment.slice(split + 2, -1);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      parent.append(link);
+    }
+    cursor = match.index + fragment.length;
+  }
+  parent.append(document.createTextNode(text.slice(cursor)));
+}
+
+function renderMarkdownInto(container, markdown) {
+  container.innerHTML = "";
+  const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
+  let fence = false;
+  let code = [];
+  let list = null;
+  const closeList = () => { list = null; };
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) {
+      closeList();
+      if (fence) {
+        const pre = node("pre");
+        pre.append(node("code", "", code.join("\n")));
+        container.append(pre);
+        code = [];
+      }
+      fence = !fence;
+      continue;
+    }
+    if (fence) { code.push(line); continue; }
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const bullet = line.match(/^\s*[-*+]\s+(.+)$/);
+    const ordered = line.match(/^\s*\d+[.)]\s+(.+)$/);
+    if (heading) {
+      closeList();
+      const h = node("h" + heading[1].length);
+      appendInlineMarkdown(h, heading[2]);
+      container.append(h);
+    } else if (bullet || ordered) {
+      const tag = ordered ? "ol" : "ul";
+      if (!list || list.tagName.toLowerCase() !== tag) { list = node(tag); container.append(list); }
+      const item = node("li");
+      appendInlineMarkdown(item, (bullet || ordered)[1]);
+      list.append(item);
+    } else if (line.startsWith("> ")) {
+      closeList();
+      const quote = node("blockquote");
+      appendInlineMarkdown(quote, line.slice(2));
+      container.append(quote);
+    } else if (line.trim()) {
+      closeList();
+      const paragraph = node("p");
+      appendInlineMarkdown(paragraph, line);
+      container.append(paragraph);
+    } else {
+      closeList();
+    }
+  }
+  if (code.length) {
+    const pre = node("pre");
+    pre.append(node("code", "", code.join("\n")));
+    container.append(pre);
+  }
+}
+
+function messageNode(message) {
+  const wrap = node("div", "message " + message.role);
+  wrap.append(node("div", "role", message.role === "user" ? "Вы" : "MrKai"));
+  const bubble = node("div", "bubble");
+  if (message.role === "assistant") renderMarkdownInto(bubble, message.content);
+  else bubble.textContent = message.content;
+  wrap.append(bubble);
+  return wrap;
+}
+
+function renderMessages() {
+  els.messages.innerHTML = "";
+  const messages = state.transcript || [];
+  if (!messages.length) {
+    const empty = node("div", "empty");
+    empty.append(node("strong", "", "Память начинается с ясного выбора"));
+    empty.append(node("span", "", "Ассистент сам выделит важные факты и распределит их по трём окнам справа."));
+    els.messages.append(empty);
+  } else {
+    messages.forEach((message) => els.messages.append(messageNode(message)));
+  }
+  els.messages.scrollTop = els.messages.scrollHeight;
+}
+
+function renderEntries(containerId, values, layer) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  const entries = Object.entries(values || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  if (!entries.length) container.append(node("div", "none", "Пока пусто"));
+  entries.forEach(([key, value]) => {
+    const row = node("div", "entry");
+    const text = node("div");
+    text.append(node("b", "", key), node("span", "", value));
+    const remove = node("button", "", "×");
+    remove.title = "Забыть " + key;
+    remove.addEventListener("click", () => mutateMemory({ action: "forget", layer, key }));
+    row.append(text, remove);
+    container.append(row);
+  });
+  return entries.length;
+}
+
+function renderShortEntries() {
+  return renderEntries("shortEntries", state.short_term, "short");
+}
+
+function render() {
+  renderMessages();
+  const shortNotes = renderShortEntries();
+  const working = renderEntries("workingEntries", state.working, "working");
+  const long = renderEntries("longEntries", state.long_term, "long");
+  document.getElementById("shortCount").textContent = shortNotes + " facts";
+  document.getElementById("workingCount").textContent = working + " entries";
+  document.getElementById("longCount").textContent = long + " entries";
+}
+
+function showNotice(text, error) {
+  els.notice.textContent = text || "";
+  els.notice.classList.toggle("error", Boolean(error));
+}
+
+function commandChoices(text) {
+  if (!text.startsWith("/")) return [];
+  if (!/[ \t]/.test(text)) return COMMANDS.filter((item) => item.value.toLowerCase().startsWith(text.toLowerCase()));
+  const command = text.trimStart().split(/\s+/)[0];
+	const fields = text.trim().split(/\s+/);
+	if (["/remember", "/forget"].includes(command) && fields.length >= 2 && /\s$/.test(text)) return [];
+  let layers = ["short", "working", "long"];
+  if (command === "/clear") layers.push("all");
+  if (!["/remember", "/forget", "/memory", "/clear"].includes(command)) return [];
+  return layers.map((layer) => ({
+    label: layer + " — слой памяти",
+    value: command + " " + layer + (["/remember", "/forget"].includes(command) ? " " : ""),
+    submit: ["/memory", "/clear"].includes(command)
+  })).filter((item) => item.value.toLowerCase().startsWith(text.toLowerCase()));
+}
+
+function closeCommandMenu() {
+  const menu = document.getElementById("commandMenu");
+  menu.classList.remove("open");
+  menu.innerHTML = "";
+  commandItems = [];
+  commandIndex = -1;
+}
+
+function updateCommandMenu() {
+  const menu = document.getElementById("commandMenu");
+  commandItems = commandChoices(els.prompt.value);
+  commandIndex = commandItems.length ? 0 : -1;
+  menu.innerHTML = "";
+  commandItems.forEach((item, index) => {
+    const row = node("div", index === 0 ? "active" : "", item.label);
+    row.addEventListener("mousedown", (event) => { event.preventDefault(); applyCommandCompletion(index, false); });
+    menu.append(row);
+  });
+  menu.classList.toggle("open", commandItems.length > 0);
+}
+
+function selectCommand(index) {
+  commandIndex = (index + commandItems.length) % commandItems.length;
+  [...document.getElementById("commandMenu").children].forEach((row, i) => row.classList.toggle("active", i === commandIndex));
+}
+
+function applyCommandCompletion(index, submit) {
+  const choice = commandItems[index];
+  if (!choice) return;
+  els.prompt.value = choice.value;
+  closeCommandMenu();
+  if (submit && choice.submit) sendPrompt(); else updateCommandMenu();
+  els.prompt.focus();
+}
+
+async function runWebCommand(line) {
+  const response = await fetch("/api/command", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ line })
+  });
+  const data = await response.json();
+  if (!response.ok) { showNotice(data.error || "Команда не выполнена", true); return; }
+  state = data;
+  render();
+  showNotice(data.output || "Команда выполнена", false);
+}
+
+async function loadState() {
+  const response = await fetch("/api/state");
+  state = await response.json();
+  render();
+}
+
+async function initializeSite() {
+  const response = await fetch("/api/transcript/reset", { method: "POST" });
+  if (!response.ok) throw new Error("Не удалось начать новый диалог");
+  state = await response.json();
+  render();
+}
+
+async function mutateMemory(payload) {
+  showNotice("Сохраняю…", false);
+  const response = await fetch("/api/memory", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    showNotice(data.error || "Не удалось изменить память", true);
+    return;
+  }
+  state = data;
+  render();
+  showNotice("Готово: запись памяти обновлена", false);
+}
+
+els.form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await mutateMemory({ action: "remember", layer: els.layer.value, key: els.key.value, value: els.value.value });
+  if (!els.notice.classList.contains("error")) {
+    els.key.value = "";
+    els.value.value = "";
+  }
+});
+
+async function sendPrompt() {
+  const prompt = els.prompt.value.trim();
+  if (!prompt || busy) return;
+	if (inputHistory[inputHistory.length - 1] !== prompt) inputHistory.push(prompt);
+	historyIndex = -1;
+  closeCommandMenu();
+  if (prompt.startsWith("/")) {
+    els.prompt.value = "";
+    await runWebCommand(prompt);
+    return;
+  }
+  busy = true;
+  els.send.disabled = true;
+  els.prompt.disabled = true;
+  els.prompt.value = "";
+  if (!state.transcript) state.transcript = [];
+  state.transcript.push({ role: "user", content: prompt });
+  const answer = { role: "assistant", content: "" };
+  state.transcript.push(answer);
+  renderMessages();
+  const bubble = els.messages.lastElementChild.querySelector(".bubble");
+  bubble.classList.add("typing");
+  try {
+    const response = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
+    if (!response.ok || !response.body) {
+      const error = await response.json();
+      throw new Error(error.error || "Ошибка запроса");
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for (;;) {
+      const part = await reader.read();
+      if (part.done) break;
+      buffer += decoder.decode(part.value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop();
+      for (const raw of events) {
+        const line = raw.trim();
+        if (!line.startsWith("data:")) continue;
+        const event = JSON.parse(line.slice(5));
+        if (event.type === "delta") {
+          answer.content += event.content;
+          renderMarkdownInto(bubble, answer.content);
+          bubble.classList.add("typing");
+          els.messages.scrollTop = els.messages.scrollHeight;
+        }
+        if (event.type === "memory_warning") showNotice("Память не обновлена: " + event.content, true);
+        if (event.type === "tool") showNotice("Источник: " + event.content, false);
+        if (event.type === "error") throw new Error(event.content);
+      }
+    }
+  } catch (error) {
+    answer.content = "Ошибка: " + error.message;
+    bubble.textContent = answer.content;
+  } finally {
+    bubble.classList.remove("typing");
+    busy = false;
+    els.send.disabled = false;
+    els.prompt.disabled = false;
+    els.prompt.focus();
+    await loadState();
+  }
+}
+
+els.send.addEventListener("click", sendPrompt);
+els.prompt.addEventListener("input", updateCommandMenu);
+els.prompt.addEventListener("keydown", (event) => {
+  if (commandItems.length) {
+    if (event.key === "ArrowDown") { event.preventDefault(); selectCommand(commandIndex + 1); return; }
+    if (event.key === "ArrowUp") { event.preventDefault(); selectCommand(commandIndex - 1); return; }
+    if (event.key === "Tab") { event.preventDefault(); applyCommandCompletion(commandIndex, false); return; }
+    if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); applyCommandCompletion(commandIndex, true); return; }
+    if (event.key === "Escape") { event.preventDefault(); closeCommandMenu(); return; }
+  }
+  if (event.key === "ArrowUp" && !els.prompt.value.includes("\n")) {
+    if (!inputHistory.length) return;
+    event.preventDefault();
+    historyIndex = Math.max(0, (historyIndex < 0 ? inputHistory.length : historyIndex) - 1);
+    els.prompt.value = inputHistory[historyIndex] || "";
+    return;
+  }
+  if (event.key === "ArrowDown" && historyIndex >= 0) {
+    event.preventDefault();
+    historyIndex++;
+    if (historyIndex >= inputHistory.length) { historyIndex = -1; els.prompt.value = ""; }
+    else els.prompt.value = inputHistory[historyIndex];
+    return;
+  }
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendPrompt();
+  }
+});
+
+initializeSite().then(() => els.prompt.focus()).catch((error) => showNotice(error.message, true));
+</script>
+</body>
+</html>
