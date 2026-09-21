@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+script="$0"
+while [ -L "$script" ]; do
+  target=$(readlink "$script")
+  case "$target" in
+    /*) script="$target" ;;
+    *) script="$(dirname "$script")/$target" ;;
+  esac
+done
+cd "$(CDPATH= cd -- "$(dirname "$script")" && pwd)"
+exec go run . "$@"
