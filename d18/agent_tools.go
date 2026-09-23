@@ -1,0 +1,123 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+)
+
+const maxToolRounds = 8
+
+type completeFunc func(context.Context, []Message, func(string) error) (string, error)
+
+type mcpToolRoute struct {
+	client *MCPClient
+	server string
+	name   string
+}
+
+// Scope each tool name by server so equally named tools remain distinguishable.
+func modelToolName(server, name string) string {
+	return "mcp__" + strings.ToLower(server) + "__" + name
+}
+
+func (a *Agent) availableTools(ctx context.Context) ([]ToolDefinition, map[string]mcpToolRoute, error) {
+	definitions := []ToolDefinition{}
+	routes := map[string]mcpToolRoute{}
+	for _, server := range []struct {
+		name   string
+		client *MCPClient
+	}{
+		{"mrkGitlab", a.gitlab},
+		{"mrkScheduler", a.scheduler},
+	} {
+		if server.client == nil {
+			continue
+		}
+		tools, err := server.client.ListTools(ctx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("список инструментов %s: %w", server.name, err)
+		}
+		for _, tool := range tools {
+			alias := modelToolName(server.name, tool.Name)
+			if _, exists := routes[alias]; exists {
+				return nil, nil, fmt.Errorf("повторное имя MCP-инструмента %q", alias)
+			}
+			definition := toolDefinitions([]MCPTool{tool})[0]
+			definition.Function.Name = alias
+			definitions = append(definitions, definition)
+			routes[alias] = mcpToolRoute{client: server.client, server: server.name, name: tool.Name}
+		}
+	}
+	return definitions, routes, nil
+}
+
+func (a *Agent) completeTurn(ctx context.Context, messages []Message, emit func(string) error, progress func(string), fallback completeFunc) (string, error) {
+	toolClient, ok := a.client.(ToolChatClient)
+	if !ok || (a.gitlab == nil && a.scheduler == nil) {
+		return fallback(ctx, messages, emit)
+	}
+	definitions, routes, err := a.availableTools(ctx)
+	if err != nil {
+		return "", err
+	}
+	if len(definitions) == 0 {
+		return fallback(ctx, messages, emit)
+	}
+	for round := 0; round < maxToolRounds; round++ {
+		var reply Message
+		if streaming, ok := toolClient.(StreamingToolChatClient); ok && emit != nil {
+			decoder := &answerStreamDecoder{}
+			reply, err = streaming.CompleteWithToolsStream(ctx, messages, definitions, func(chunk string) error {
+				return decoder.feed(chunk, emit)
+			})
+		} else {
+			reply, err = toolClient.CompleteWithTools(ctx, messages, definitions)
+		}
+		if err != nil {
+			return "", err
+		}
+		if len(reply.ToolCalls) == 0 {
+			return reply.Content, nil
+		}
+		messages = append(messages, Message{Role: "assistant", Content: reply.Content, ToolCalls: reply.ToolCalls})
+		for _, call := range reply.ToolCalls {
+			result := a.runToolCall(ctx, call, routes, progress)
+			if err := ctx.Err(); err != nil {
+				return "", err
+			}
+			messages = append(messages, Message{Role: "tool", Content: result, ToolCallID: call.ID})
+		}
+	}
+	return "", fmt.Errorf("превышен предел последовательных вызовов MCP-инструментов (%d)", maxToolRounds)
+}
+
+func (a *Agent) runToolCall(ctx context.Context, call ToolCall, routes map[string]mcpToolRoute, progress func(string)) string {
+	route, ok := routes[call.Function.Name]
+	if !ok {
+		return "Ошибка инструмента: неизвестный MCP-инструмент"
+	}
+	arguments := strings.TrimSpace(call.Function.Arguments)
+	if arguments == "" {
+		arguments = "{}"
+	}
+	if progress != nil {
+		progress(fmt.Sprintf("%s.%s: вызываю инструмент", route.server, route.name))
+	}
+	result, err := route.client.CallJSONToolWithProgress(ctx, route.name, json.RawMessage(arguments), func(message string) {
+		if progress != nil {
+			progress("  ↳ " + message)
+		}
+	})
+	if err != nil {
+		if progress != nil {
+			progress(fmt.Sprintf("%s.%s: ошибка — %v", route.server, route.name, err))
+		}
+		return "Ошибка инструмента: " + err.Error()
+	}
+	if progress != nil {
+		progress(fmt.Sprintf("%s.%s: результат получен и передан модели", route.server, route.name))
+	}
+	return result
+}
