@@ -1,0 +1,12 @@
+[
+  {"question":"Какая команда запускает терминальный агент?", "expected":"mrkai", "source":"rag-facts.md", "section":"Запуск"},
+  {"question":"Как включить режим планирования?", "expected":"/plan-mode enable", "source":"rag-facts.md", "section":"Планирование"},
+  {"question":"Какие два индекса строит /index build?", "expected":"fixed и structure", "source":"rag-facts.md", "section":"Локальный индекс"},
+  {"question":"Локальные эмбеддинги имеют сколько измерений?", "expected":"384", "source":"rag-facts.md", "section":"Векторы"},
+  {"question":"Сколько чанков выдаёт /index search structure?", "expected":"пять", "source":"rag-facts.md", "section":"Поиск"},
+  {"question":"Каков предел числа репозиториев для /index github?", "expected":"40", "source":"rag-facts.md", "section":"GitHub README"},
+  {"question":"Где сохраняется индекс structure?", "expected":"DATA_DIR/index/structure.json", "source":"rag-facts.md", "section":"Хранилище"},
+  {"question":"Что агент передаёт модели после обнаружения MCP инструментов?", "expected":"схемы инструментов", "source":"rag-facts.md", "section":"MCP"},
+  {"question":"Какая команда сохраняет инвариант?", "expected":"/invariant add", "source":"rag-facts.md", "section":"Инварианты"},
+  {"question":"Как остановить текущее выполнение в mrkai?", "expected":"Ctrl+C или Esc", "source":"rag-facts.md", "section":"Остановка"}
+]
