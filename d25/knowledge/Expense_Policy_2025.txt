@@ -1,0 +1,358 @@
+TECHVAULT INC.
+EXPENSE REIMBURSEMENT POLICY
+Updated: January 2025
+
+================================================================================
+POLICY OVERVIEW
+================================================================================
+
+This policy outlines the guidelines for business-related expenses and the reimbursement process for TechVault employees.
+
+GUIDING PRINCIPLES:
+- Spend company money as if it were your own
+- Be reasonable and cost-conscious
+- When in doubt, ask your manager
+- Always obtain pre-approval for expenses over $500
+
+EFFECTIVE DATE: January 1, 2025
+APPLIES TO: All full-time and part-time employees
+
+================================================================================
+REIMBURSABLE EXPENSES
+================================================================================
+
+TRAVEL EXPENSES:
+
+Airfare:
+- Book economy class for flights under 6 hours
+- Premium economy allowed for flights over 6 hours
+- Business class requires VP approval for flights over 10 hours
+- Book at least 14 days in advance when possible
+- Use company travel portal (TravelPerk) for best rates
+
+Ground Transportation:
+- Rideshare (Uber/Lyft): Allowed for business travel
+- Rental cars: Compact or mid-size preferred, pre-approval needed
+- Mileage: $0.67 per mile for personal vehicle use (2025 IRS rate)
+- Parking: Reasonable parking fees at airports, hotels, client sites
+- Public transit: Always reimbursable (subway, bus, train)
+
+Lodging:
+- Maximum $250/night in major cities (NYC, SF, LA, London)
+- Maximum $175/night in other locations
+- Use company preferred hotels when available
+- Direct bill to company when possible
+- Extended stays (7+ nights): Consider Airbnb with kitchen
+
+Meals:
+- Breakfast: Up to $20
+- Lunch: Up to $30
+- Dinner: Up to $60
+- Alcohol: Maximum 2 drinks, total not to exceed $30
+- Client meals: Reasonable amounts, no preset limit
+- Tips: 15-20% standard
+
+EQUIPMENT & TECHNOLOGY:
+
+Home Office Setup:
+- One-time $1,500 stipend (see Employee Handbook)
+- Ergonomic chair: Up to $600
+- Desk: Up to $500
+- Monitor: Up to $400
+- Additional equipment requires manager approval
+
+Recurring Stipends:
+- Internet: $50/month (no receipt required)
+- Mobile phone: $75/month (no receipt required)
+- Co-working space: $200/month (receipt required)
+- Wellness: $100/month (receipt required)
+
+Software & Subscriptions:
+- Work-related software: Pre-approval required
+- Licenses must be in company name when possible
+- Submit monthly/annual costs separately
+- Examples: Grammarly, Notion personal, ChatGPT Plus
+
+PROFESSIONAL DEVELOPMENT:
+
+Conferences:
+- Registration fees: Fully covered (pre-approval needed)
+- Travel and lodging: Follow travel expense guidelines
+- Up to 2 conferences per year per employee
+- Additional conferences require VP approval
+
+Courses & Certifications:
+- Annual budget: $2,000 per employee
+- Online courses: Udemy, Coursera, Pluralsight, etc.
+- Certification exams: AWS, Google Cloud, CISSP, etc.
+- Books: Up to $50/month
+- Must be relevant to role or career development
+
+TEAM EVENTS & ENTERTAINMENT:
+
+Team Meals:
+- Team lunches: Up to $30/person
+- Team dinners: Up to $75/person
+- Manager approval required for groups of 6+
+- Alcohol: Maximum 2 drinks per person
+
+Client Entertainment:
+- Meals: Reasonable amounts based on context
+- Events: Pre-approval required for tickets over $200/person
+- Gifts: Maximum $100/person, must be business-appropriate
+- No cash gifts allowed
+
+Team Building:
+- Quarterly team events: Budget set by department
+- Virtual events: Up to $50/person (games, activities)
+- Annual company retreat: Fully covered
+
+================================================================================
+NON-REIMBURSABLE EXPENSES
+================================================================================
+
+The following expenses will NOT be reimbursed:
+
+PERSONAL EXPENSES:
+- Personal grooming (haircuts, spa, etc.)
+- Gym memberships (use wellness stipend instead)
+- Personal entertainment
+- Traffic violations, parking tickets
+- Personal travel or vacation
+- Commuting to regular workplace
+- Personal phone calls
+
+LUXURY ITEMS:
+- First-class airfare (without exec approval)
+- Luxury car rentals (Mercedes, BMW, etc.)
+- Hotel mini-bar charges
+- In-room movies
+- Room service (unless working late, with manager approval)
+- Excessive meal costs beyond guidelines
+
+OTHER:
+- Late fees or interest charges
+- Expenses without receipts (over $25)
+- Expenses submitted more than 90 days after incurred
+- Expenses not related to TechVault business
+
+================================================================================
+EXPENSE SUBMISSION PROCESS
+================================================================================
+
+USING EXPENSIFY:
+
+Step 1: Capture Receipt
+- Take photo of receipt immediately
+- Email receipts to receipts@techvault.expensify.com
+- Receipts required for expenses over $25
+- Keep physical receipts until reimbursed
+
+Step 2: Create Expense Report
+- Log into Expensify (expensify.com)
+- Create new report
+- Add expenses from captured receipts
+- Categorize each expense correctly
+- Add business purpose description
+
+Step 3: Submit for Approval
+- Submit report by end of month
+- Manager reviews and approves
+- Finance team processes payment
+- Reimbursement via direct deposit within 10 business days
+
+REQUIRED INFORMATION:
+- Date of expense
+- Amount in original currency
+- Vendor/merchant name
+- Business purpose (be specific!)
+- Category (meals, travel, equipment, etc.)
+- Receipt or invoice
+
+EXPENSE CATEGORIES:
+- Airfare
+- Lodging
+- Ground Transportation
+- Meals - Team
+- Meals - Client
+- Office Equipment
+- Software & Subscriptions
+- Professional Development
+- Co-working Space
+- Internet
+- Mobile Phone
+- Wellness
+- Other (describe)
+
+SUBMISSION DEADLINES:
+- Submit within 30 days of expense date
+- Monthly cutoff: Last day of each month
+- Late submissions (31-60 days): Require manager explanation
+- Very late submissions (61-90 days): Require VP approval
+- Expenses over 90 days old: Not reimbursable
+
+================================================================================
+COMPANY CREDIT CARDS
+================================================================================
+
+ELIGIBILITY:
+- Directors and above: Automatic
+- Managers: Upon request with VP approval
+- Individual contributors: Special cases only
+
+CARD USAGE:
+- Only for pre-approved business expenses
+- Never for personal use
+- Report lost/stolen cards immediately
+- Review statements monthly
+- Reconcile in Expensify by 10th of each month
+
+LIMITS:
+- Director: $10,000/month
+- VP: $25,000/month
+- Executive: $50,000/month
+- Higher limits require CFO approval
+
+CONSEQUENCES OF MISUSE:
+- First offense: Written warning
+- Second offense: Card revoked
+- Serious violations: Termination and legal action
+
+================================================================================
+PRE-APPROVAL REQUIREMENTS
+================================================================================
+
+WHEN TO GET PRE-APPROVAL:
+
+Always Required:
+- Any single expense over $500
+- International travel
+- Client entertainment over $200/person
+- Conference registration
+- Software purchases
+- Equipment not covered by stipend
+
+How to Get Approval:
+1. Email manager with details: what, why, estimated cost
+2. Include relevant links or quotes
+3. Get written approval before purchase
+4. Attach approval email to expense report
+
+Emergency Situations:
+- If urgent and manager unavailable, use best judgment
+- Document decision rationale
+- Inform manager ASAP
+- Be prepared to justify expense
+
+================================================================================
+INTERNATIONAL TRAVEL & EXPENSES
+================================================================================
+
+CURRENCY:
+- Pay in local currency when possible for best rates
+- Expensify auto-converts to USD
+- Credit card foreign transaction fees reimbursable
+
+PER DIEM RATES:
+For extended international travel, per diem option available:
+- Use GSA rates for international locations
+- Manager approval required
+- Receipts not required for meals under per diem
+- Lodging receipts still required
+
+TRAVEL INSURANCE:
+- Medical: Covered by company policy
+- Trip cancellation: Included with corporate card
+- Lost luggage: File claim with airline first
+
+VISAS & DOCUMENTS:
+- Business visa fees: Fully reimbursable
+- Passport fees: Not reimbursable (personal document)
+- Expedited processing: Reimbursable if business need
+
+================================================================================
+MANAGER RESPONSIBILITIES
+================================================================================
+
+Managers must:
+- Review and approve expense reports within 5 business days
+- Ensure expenses align with this policy
+- Question unusual or excessive expenses
+- Approve pre-approval requests promptly
+- Set good example with own expense practices
+
+Managers have authority to:
+- Approve expenses up to $2,000 without escalation
+- Deny expenses not compliant with policy
+- Request additional documentation
+- Escalate unusual cases to Finance
+
+================================================================================
+POLICY VIOLATIONS
+================================================================================
+
+VIOLATION EXAMPLES:
+- Submitting personal expenses as business expenses
+- Inflating expense amounts
+- Creating false receipts
+- Claiming expenses never incurred
+- Excessive or unreasonable spending
+
+CONSEQUENCES:
+- Minor violations: Expense denied, coaching provided
+- Repeated violations: Written warning, possible suspension
+- Serious violations: Termination, legal action, repayment required
+
+REPORTING VIOLATIONS:
+- Report suspected violations to hr@techvault.io
+- Anonymous reporting available
+- No retaliation for good-faith reports
+- All reports investigated thoroughly
+
+================================================================================
+SPECIAL CIRCUMSTANCES
+================================================================================
+
+RELOCATION:
+- Company-approved relocations have separate policy
+- Contact HR for relocation package details
+
+CONFERENCES AS SPEAKER:
+- If TechVault sponsors your talk, expenses fully covered
+- If personal speaking opportunity, discuss with manager
+- May qualify for professional development budget
+
+CUSTOMER VISITS:
+- All reasonable expenses covered
+- No preset limits for strategic customer meetings
+- Keep CFO informed of large customer entertainment
+
+NATURAL DISASTERS / EMERGENCIES:
+- Safety first - spend what's needed
+- Document everything
+- Inform manager ASAP
+- Special approval process available
+
+================================================================================
+QUESTIONS & SUPPORT
+================================================================================
+
+For questions about:
+- Policy interpretation: finance@techvault.io
+- Expensify technical issues: it@techvault.io
+- Pre-approvals: Your direct manager
+- Policy violations: hr@techvault.io
+
+HELPFUL RESOURCES:
+- Expensify guide: https://docs.techvault.io/expensify
+- Travel booking: https://travel.techvault.io
+- GSA per diem rates: https://www.gsa.gov/perdiem
+
+================================================================================
+
+This policy is subject to change. Employees will be notified of updates.
+
+Policy Owner: Finance Department
+Last Review Date: January 2025
+Next Review Date: January 2026
+Version: 3.0
