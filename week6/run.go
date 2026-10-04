@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -28,6 +29,24 @@ func Run(day int) error {
 // RunWith keeps the application boundary testable without a running model.
 func RunWith(ctx context.Context, day int, client LocalClient, model string, in io.Reader, out io.Writer) error {
 	agent := NewAgent(client, model)
+	commands := append([]terminal.Command(nil), baseCommands...)
+	var rag *RAG
+	if day >= 28 {
+		embedder, ok := client.(Embedder)
+		if !ok {
+			return fmt.Errorf("клиент не поддерживает локальные эмбеддинги")
+		}
+		dataDir := os.Getenv("DATA_DIR")
+		if dataDir == "" {
+			dataDir = "data"
+		}
+		rag = NewRAG(embedder, os.Getenv("OLLAMA_EMBED_MODEL"), filepath.Join(dataDir, "index.json"))
+		commands = append(commands,
+			terminal.Command{Value: "/index", Description: "индекс документов"},
+			terminal.Command{Value: "/index build", Description: "построить локальный индекс"},
+			terminal.Command{Value: "/index status", Description: "число фрагментов", Submit: true},
+		)
+	}
 	handle := func(ctx context.Context, line string, out io.Writer) bool {
 		line = strings.TrimSpace(line)
 		progress := func(s string) { fmt.Fprintln(out, s) }
@@ -35,7 +54,13 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 		case "/exit", "/quit":
 			return true
 		case "/help":
-			fmt.Fprintln(out, "Команды: /help, /model status, /check, /reset, /clear, /exit, /quit. Обычный текст — диалог с локальной моделью.")
+			message := "Команды: /help, /model status, /check, /reset, /clear, /exit, /quit."
+			if rag != nil {
+				message += " /index build [КАТАЛОГ], /index status. Обычный текст — вопрос по документам."
+			} else {
+				message += " Обычный текст — диалог с локальной моделью."
+			}
+			fmt.Fprintln(out, message)
 		case "/reset", "/clear":
 			agent.Reset()
 			if screen, ok := out.(interface{ ClearChat() error }); ok {
@@ -58,7 +83,32 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 			if err != nil {
 				fmt.Fprintln(out, "Ошибка:", err)
 			}
+		case "/index status":
+			if rag == nil {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
+			index, err := rag.Load()
+			if err != nil {
+				fmt.Fprintln(out, "Ошибка:", err)
+			} else {
+				fmt.Fprintf(out, "Индекс: %d фрагментов, модель %s\n", len(index.Chunks), index.Model)
+			}
 		default:
+			if rag != nil && (line == "/index build" || strings.HasPrefix(line, "/index build ")) {
+				path := strings.TrimSpace(strings.TrimPrefix(line, "/index build"))
+				if path == "" {
+					path = "knowledge"
+				}
+				progress("RAG: читаю документы из " + path)
+				count, err := rag.Build(ctx, path, progress)
+				if err != nil {
+					fmt.Fprintln(out, "Ошибка:", err)
+				} else {
+					fmt.Fprintf(out, "Индекс готов: %d фрагментов\n", count)
+				}
+				break
+			}
 			if strings.HasPrefix(line, "/") {
 				fmt.Fprintln(out, "Неизвестная команда. /help")
 				break
@@ -66,14 +116,23 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 			if line == "" {
 				break
 			}
-			result, err := agent.Answer(ctx, line, progress)
-			if err != nil {
-				fmt.Fprintln(out, "Ошибка:", err)
+			if rag != nil {
+				result, hits, err := rag.Answer(ctx, agent, line, progress)
+				if err != nil {
+					fmt.Fprintln(out, "Ошибка:", err)
+				} else {
+					fmt.Fprintln(out, result.Text+"\n\n"+FormatHits(hits))
+				}
 			} else {
-				fmt.Fprintln(out, result.Text)
+				result, err := agent.Answer(ctx, line, progress)
+				if err != nil {
+					fmt.Fprintln(out, "Ошибка:", err)
+				} else {
+					fmt.Fprintln(out, result.Text)
+				}
 			}
 		}
 		return false
 	}
-	return terminal.Run(ctx, in, out, fmt.Sprintf("mrkai · день %d · локальная LLM · /help", day), baseCommands, handle)
+	return terminal.Run(ctx, in, out, fmt.Sprintf("mrkai · день %d · локальная LLM · /help", day), commands, handle)
 }
