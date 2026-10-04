@@ -43,6 +43,17 @@ type LocalClient interface {
 	Chat(context.Context, string, []Message, Options) (ChatResult, error)
 }
 
+type LoadedModel struct {
+	Name          string `json:"name"`
+	Size          int64  `json:"size"`
+	SizeVRAM      int64  `json:"size_vram"`
+	ContextLength int    `json:"context_length"`
+}
+
+type MemoryReporter interface {
+	Loaded(context.Context) ([]LoadedModel, error)
+}
+
 type Ollama struct {
 	BaseURL string
 	HTTP    *http.Client
@@ -93,6 +104,16 @@ func (c *Ollama) Models(ctx context.Context) ([]Model, error) {
 		Models []Model `json:"models"`
 	}
 	if err := c.request(ctx, http.MethodGet, "/api/tags", nil, &data); err != nil {
+		return nil, err
+	}
+	return data.Models, nil
+}
+
+func (c *Ollama) Loaded(ctx context.Context) ([]LoadedModel, error) {
+	var data struct {
+		Models []LoadedModel `json:"models"`
+	}
+	if err := c.request(ctx, http.MethodGet, "/api/ps", nil, &data); err != nil {
 		return nil, err
 	}
 	return data.Models, nil

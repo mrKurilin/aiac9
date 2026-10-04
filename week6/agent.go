@@ -8,10 +8,11 @@ import (
 )
 
 type Agent struct {
-	Client  LocalClient
-	Model   string
-	Options Options
-	History []Message
+	Client       LocalClient
+	Model        string
+	Options      Options
+	History      []Message
+	SystemPrompt string
 }
 
 func NewAgent(client LocalClient, model string) *Agent {
@@ -39,7 +40,11 @@ func (a *Agent) Models(ctx context.Context) (string, error) {
 }
 
 func (a *Agent) Answer(ctx context.Context, prompt string, progress func(string)) (ChatResult, error) {
-	messages := append([]Message(nil), a.History...)
+	messages := make([]Message, 0, len(a.History)+2)
+	if a.SystemPrompt != "" {
+		messages = append(messages, Message{Role: "system", Content: a.SystemPrompt})
+	}
+	messages = append(messages, a.History...)
 	messages = append(messages, Message{Role: "user", Content: prompt})
 	if progress != nil {
 		progress("Ollama: отправляю запрос к " + a.Model)

@@ -47,6 +47,18 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 			terminal.Command{Value: "/index status", Description: "число фрагментов", Submit: true},
 		)
 	}
+	profileName := ""
+	if day >= 29 {
+		agent.UseProfile(Economical)
+		profileName = Economical.Name
+		commands = append(commands,
+			terminal.Command{Value: "/profile", Description: "профиль генерации"},
+			terminal.Command{Value: "/profile status", Description: "текущий профиль", Submit: true},
+			terminal.Command{Value: "/profile baseline", Description: "базовые параметры", Submit: true},
+			terminal.Command{Value: "/profile optimized", Description: "экономный профиль", Submit: true},
+			terminal.Command{Value: "/benchmark", Description: "сравнить профили"},
+		)
+	}
 	handle := func(ctx context.Context, line string, out io.Writer) bool {
 		line = strings.TrimSpace(line)
 		progress := func(s string) { fmt.Fprintln(out, s) }
@@ -59,6 +71,9 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 				message += " /index build [КАТАЛОГ], /index status. Обычный текст — вопрос по документам."
 			} else {
 				message += " Обычный текст — диалог с локальной моделью."
+			}
+			if day >= 29 {
+				message += " /profile status|baseline|optimized, /benchmark ВОПРОС."
 			}
 			fmt.Fprintln(out, message)
 		case "/reset", "/clear":
@@ -94,7 +109,51 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 			} else {
 				fmt.Fprintf(out, "Индекс: %d фрагментов, модель %s\n", len(index.Chunks), index.Model)
 			}
+		case "/profile status":
+			if day < 29 {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
+			fmt.Fprintf(out, "Профиль: %s; модель: %s; temperature %.1f; max tokens %d; context %d\n", profileName, agent.Model, agent.Options.Temperature, agent.Options.NumPredict, agent.Options.NumCtx)
+		case "/profile baseline", "/profile optimized":
+			if day < 29 {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
+			if line == "/profile baseline" {
+				agent.UseProfile(Baseline)
+				profileName = Baseline.Name
+			} else {
+				agent.UseProfile(Economical)
+				profileName = Economical.Name
+			}
+			fmt.Fprintln(out, "Выбран профиль:", profileName)
 		default:
+			if day >= 29 && (line == "/benchmark" || strings.HasPrefix(line, "/benchmark ")) {
+				question := strings.TrimSpace(strings.TrimPrefix(line, "/benchmark"))
+				if question == "" {
+					fmt.Fprintln(out, "Использование: /benchmark ВОПРОС")
+					break
+				}
+				result, err := rag.Benchmark(ctx, agent, question, progress)
+				if err != nil {
+					fmt.Fprintln(out, "Ошибка:", err)
+					break
+				}
+				if len(result.Samples) == 2 {
+					left, right := result.Samples[0], result.Samples[1]
+					terminal.PrintComparison(out, "БАЗОВЫЙ", "ЭКОНОМНЫЙ", left.Result.Text, right.Result.Text)
+					fmt.Fprintln(out, "Вопрос:", result.Question)
+					fmt.Fprintln(out, FormatHits(result.Hits))
+					for _, sample := range result.Samples {
+						memory := "н/д"
+						if sample.Memory > 0 { memory = fmt.Sprintf("%.1f ГБ", float64(sample.Memory)/1e9) }
+						fmt.Fprintf(out, "%s: %s; вход %d / выход %d токенов; память %s (по Ollama)\n", sample.Profile.Name, sample.Result.Duration, sample.Result.PromptTokens, sample.Result.OutputTokens, memory)
+					}
+					fmt.Fprintln(out, "Качество: сравните полноту и точность ответов по указанным источникам.")
+				}
+				break
+			}
 			if rag != nil && (line == "/index build" || strings.HasPrefix(line, "/index build ")) {
 				path := strings.TrimSpace(strings.TrimPrefix(line, "/index build"))
 				if path == "" {
