@@ -40,7 +40,6 @@ func Run(ctx context.Context, in io.Reader, out io.Writer, title string, command
 func lineMode(ctx context.Context, in io.Reader, out io.Writer, handle Handler) error {
 	scanner := bufio.NewScanner(in)
 	for {
-		fmt.Fprint(out, "> ")
 		if !scanner.Scan() {
 			return scanner.Err()
 		}
@@ -53,6 +52,9 @@ func lineMode(ctx context.Context, in io.Reader, out io.Writer, handle Handler) 
 			}
 			fmt.Fprintln(out, strings.Join(values, "  "))
 			continue
+		}
+		if strings.TrimSpace(line) != "" {
+			PrintMessage(out, "ВЫ", line)
 		}
 		if handle(ctx, line, out) {
 			return nil
@@ -76,7 +78,7 @@ func runInteractive(ctx context.Context, reader *bufio.Reader, footer *bottomTer
 				if len(history) == 0 || history[len(history)-1] != line {
 					history = append(history, line)
 				}
-				fmt.Fprintln(footer, "→ "+line)
+				PrintMessage(footer, "ВЫ", line)
 			}
 			select {
 			case inputs <- terminalInput{line, err}:
@@ -134,14 +136,14 @@ func runInteractive(ctx context.Context, reader *bufio.Reader, footer *bottomTer
 				queue = nil
 				if cancel != nil {
 					cancel()
-					fmt.Fprintf(footer, "%s: останавливаю текущее выполнение…\n", key)
+					PrintDiagnostic(footer, key+": останавливаю текущее выполнение…")
 					if double {
 						exitAfterCancel = true
 					}
 				} else if double {
 					return nil
 				} else {
-					fmt.Fprintf(footer, "Нет активного выполнения. Нажмите %s ещё раз для выхода.\n", key)
+					PrintDiagnostic(footer, "Нет активного выполнения. Нажмите "+key+" ещё раз для выхода.")
 				}
 				continue
 			}
