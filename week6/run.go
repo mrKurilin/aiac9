@@ -61,7 +61,7 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 	}
 	handle := func(ctx context.Context, line string, out io.Writer) bool {
 		line = strings.TrimSpace(line)
-		progress := func(s string) { fmt.Fprintln(out, s) }
+		progress := func(s string) { terminal.PrintDiagnostic(out, s) }
 		switch line {
 		case "/exit", "/quit":
 			return true
@@ -143,14 +143,16 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 				if len(result.Samples) == 2 {
 					left, right := result.Samples[0], result.Samples[1]
 					terminal.PrintComparison(out, "БАЗОВЫЙ", "ЭКОНОМНЫЙ", left.Result.Text, right.Result.Text)
-					fmt.Fprintln(out, "Вопрос:", result.Question)
-					fmt.Fprintln(out, FormatHits(result.Hits))
+					terminal.PrintDiagnostic(out, "Вопрос: "+result.Question)
+					terminal.PrintDiagnostic(out, FormatHits(result.Hits))
 					for _, sample := range result.Samples {
 						memory := "н/д"
-						if sample.Memory > 0 { memory = fmt.Sprintf("%.1f ГБ", float64(sample.Memory)/1e9) }
-						fmt.Fprintf(out, "%s: %s; вход %d / выход %d токенов; память %s (по Ollama)\n", sample.Profile.Name, sample.Result.Duration, sample.Result.PromptTokens, sample.Result.OutputTokens, memory)
+						if sample.Memory > 0 {
+							memory = fmt.Sprintf("%.1f ГБ", float64(sample.Memory)/1e9)
+						}
+						terminal.PrintDiagnostic(out, fmt.Sprintf("%s: %s; вход %d / выход %d токенов; память %s (по Ollama)", sample.Profile.Name, sample.Result.Duration, sample.Result.PromptTokens, sample.Result.OutputTokens, memory))
 					}
-					fmt.Fprintln(out, "Качество: сравните полноту и точность ответов по указанным источникам.")
+					terminal.PrintDiagnostic(out, "Качество: сравните полноту и точность ответов по указанным источникам.")
 				}
 				break
 			}
@@ -180,14 +182,15 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 				if err != nil {
 					fmt.Fprintln(out, "Ошибка:", err)
 				} else {
-					fmt.Fprintln(out, result.Text+"\n\n"+FormatHits(hits))
+					terminal.PrintMessage(out, "МОДЕЛЬ · "+agent.Model, result.Text)
+					terminal.PrintDiagnostic(out, FormatHits(hits))
 				}
 			} else {
 				result, err := agent.Answer(ctx, line, progress)
 				if err != nil {
 					fmt.Fprintln(out, "Ошибка:", err)
 				} else {
-					fmt.Fprintln(out, result.Text)
+					terminal.PrintMessage(out, "МОДЕЛЬ · "+agent.Model, result.Text)
 				}
 			}
 		}
