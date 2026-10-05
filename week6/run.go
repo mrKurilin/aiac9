@@ -49,7 +49,7 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 	}
 	handle := func(ctx context.Context, line string, out io.Writer) bool {
 		line = strings.TrimSpace(line)
-		progress := func(s string) { fmt.Fprintln(out, s) }
+		progress := func(s string) { terminal.PrintDiagnostic(out, s) }
 		switch line {
 		case "/exit", "/quit":
 			return true
@@ -121,14 +121,15 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 				if err != nil {
 					fmt.Fprintln(out, "Ошибка:", err)
 				} else {
-					fmt.Fprintln(out, result.Text+"\n\n"+FormatHits(hits))
+					terminal.PrintMessage(out, "МОДЕЛЬ · "+agent.Model, result.Text)
+					terminal.PrintDiagnostic(out, FormatHits(hits))
 				}
 			} else {
 				result, err := agent.Answer(ctx, line, progress)
 				if err != nil {
 					fmt.Fprintln(out, "Ошибка:", err)
 				} else {
-					fmt.Fprintln(out, result.Text)
+					terminal.PrintMessage(out, "МОДЕЛЬ · "+agent.Model, result.Text)
 				}
 			}
 		}
