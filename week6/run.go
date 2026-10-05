@@ -25,7 +25,7 @@ func Run(day int) error {
 	agent := NewAgent(client, os.Getenv("OLLAMA_MODEL"))
 	handle := func(ctx context.Context, line string, out io.Writer) bool {
 		line = strings.TrimSpace(line)
-		progress := func(s string) { fmt.Fprintln(out, s) }
+		progress := func(s string) { terminal.PrintDiagnostic(out, s) }
 		switch line {
 		case "/exit", "/quit":
 			return true
@@ -65,7 +65,7 @@ func Run(day int) error {
 			if err != nil {
 				fmt.Fprintln(out, "Ошибка:", err)
 			} else {
-				fmt.Fprintln(out, result.Text)
+				terminal.PrintMessage(out, "МОДЕЛЬ · "+agent.Model, result.Text)
 			}
 		}
 		return false
