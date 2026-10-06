@@ -22,7 +22,12 @@ var baseCommands = []terminal.Command{
 
 func Run(day int) error {
 	client := NewOllama(os.Getenv("OLLAMA_BASE_URL"))
-	agent := NewAgent(client, os.Getenv("OLLAMA_MODEL"))
+	return RunWith(context.Background(), day, client, os.Getenv("OLLAMA_MODEL"), os.Stdin, os.Stdout)
+}
+
+// RunWith keeps the application boundary testable without a running model.
+func RunWith(ctx context.Context, day int, client LocalClient, model string, in io.Reader, out io.Writer) error {
+	agent := NewAgent(client, model)
 	handle := func(ctx context.Context, line string, out io.Writer) bool {
 		line = strings.TrimSpace(line)
 		progress := func(s string) { terminal.PrintDiagnostic(out, s) }
@@ -70,5 +75,5 @@ func Run(day int) error {
 		}
 		return false
 	}
-	return terminal.Run(context.Background(), os.Stdin, os.Stdout, fmt.Sprintf("mrkai · день %d · локальная LLM · /help", day), baseCommands, handle)
+	return terminal.Run(ctx, in, out, fmt.Sprintf("mrkai · день %d · локальная LLM · /help", day), baseCommands, handle)
 }
