@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 var baseCommands = []terminal.Command{
@@ -23,11 +24,22 @@ var baseCommands = []terminal.Command{
 
 func Run(day int) error {
 	client := NewOllama(os.Getenv("OLLAMA_BASE_URL"))
-	return RunWith(context.Background(), day, client, os.Getenv("OLLAMA_MODEL"), os.Stdin, os.Stdout)
+	var cloud ChatGenerator
+	if key := os.Getenv("DEEPSEEK_API_KEY"); key != "" {
+		cloud = NewDeepSeek(os.Getenv("DEEPSEEK_BASE_URL"), key)
+	}
+	return RunWithCloud(context.Background(), day, client, os.Getenv("OLLAMA_MODEL"), cloud, os.Getenv("DEEPSEEK_MODEL"), os.Stdin, os.Stdout)
 }
 
 // RunWith keeps the application boundary testable without a running model.
 func RunWith(ctx context.Context, day int, client LocalClient, model string, in io.Reader, out io.Writer) error {
+	return RunWithCloud(ctx, day, client, model, nil, "", in, out)
+}
+
+func RunWithCloud(ctx context.Context, day int, client LocalClient, model string, cloud ChatGenerator, cloudModel string, in io.Reader, out io.Writer) error {
+	if cloudModel == "" {
+		cloudModel = "deepseek-flash"
+	}
 	agent := NewAgent(client, model)
 	commands := append([]terminal.Command(nil), baseCommands...)
 	var rag *RAG
@@ -45,6 +57,7 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 			terminal.Command{Value: "/index", Description: "индекс документов"},
 			terminal.Command{Value: "/index build", Description: "построить локальный индекс"},
 			terminal.Command{Value: "/index status", Description: "число фрагментов", Submit: true},
+			terminal.Command{Value: "/compare", Description: "сравнить локальный и облачный RAG по вопросу"},
 		)
 	}
 	profileName := ""
@@ -68,7 +81,7 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 		case "/help":
 			message := "Команды: /help, /model status, /check, /reset, /clear, /exit, /quit."
 			if rag != nil {
-				message += " /index build [КАТАЛОГ], /index status. Обычный текст — вопрос по документам."
+				message += " /index build [КАТАЛОГ], /index status, /compare ВОПРОС. Обычный текст — локальный вопрос по документам."
 			} else {
 				message += " Обычный текст — диалог с локальной моделью."
 			}
@@ -153,6 +166,28 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 						terminal.PrintDiagnostic(out, fmt.Sprintf("%s: %s; вход %d / выход %d токенов; память %s (по Ollama)", sample.Profile.Name, sample.Result.Duration, sample.Result.PromptTokens, sample.Result.OutputTokens, memory))
 					}
 					terminal.PrintDiagnostic(out, "Качество: сравните полноту и точность ответов по указанным источникам.")
+				}
+				break
+			}
+			if rag != nil && (line == "/compare" || strings.HasPrefix(line, "/compare ")) {
+				question := strings.TrimSpace(strings.TrimPrefix(line, "/compare"))
+				switch {
+				case question == "":
+					fmt.Fprintln(out, "Укажите вопрос: /compare ВОПРОС")
+				case cloud == nil:
+					fmt.Fprintln(out, "Для /compare задайте DEEPSEEK_API_KEY")
+				default:
+					local, remote, hits, err := rag.Compare(ctx, agent, cloud, cloudModel, question, progress)
+					if local.Text != "" && remote.Text == "" {
+						terminal.PrintMessage(out, "ЛОКАЛЬНАЯ · "+agent.Model, local.Text)
+						terminal.PrintDiagnostic(out, FormatHits(hits))
+					}
+					if err != nil {
+						fmt.Fprintln(out, "Ошибка сравнения:", err)
+					} else {
+						metrics := fmt.Sprintf("Локальная %s: %s, токены %d/%d\nОблачная %s: %s, токены %d/%d\n%s", agent.Model, local.Duration.Round(time.Millisecond), local.PromptTokens, local.OutputTokens, cloudModel, remote.Duration.Round(time.Millisecond), remote.PromptTokens, remote.OutputTokens, FormatHits(hits))
+						terminal.PrintComparison(out, "ЛОКАЛЬНАЯ", "ОБЛАЧНАЯ", local.Text, remote.Text, question, metrics)
+					}
 				}
 				break
 			}

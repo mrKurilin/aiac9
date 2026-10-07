@@ -6,64 +6,62 @@ import (
 	"strings"
 )
 
-// PrintComparison keeps multiline answers in two aligned panes.
-func PrintComparison(out io.Writer, leftTitle, rightTitle, leftText, rightText string) {
+// PrintComparison renders aligned, wrapped answer panes with shared evidence.
+func PrintComparison(out io.Writer, leftLabel, rightLabel, left, right string, details ...string) {
 	columns, _ := terminalSize(out)
-	width := (columns - 3) / 2
-	if width < 18 {
-		width = 18
-	}
-	left := comparisonLines(leftText, width)
-	right := comparisonLines(rightText, width)
-	fmt.Fprintf(out, "%s │ %s\n", comparisonPad(leftTitle, width), comparisonPad(rightTitle, width))
+	width := maxComparison(20, (columns-3)/2)
+	leftLines := comparisonLines(left, width)
+	rightLines := comparisonLines(right, width)
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "%s │ %s\n", comparisonPad(leftLabel, width), comparisonPad(rightLabel, width))
 	fmt.Fprintf(out, "%s─┼─%s\n", strings.Repeat("─", width), strings.Repeat("─", width))
-	rows := len(left)
-	if len(right) > rows {
-		rows = len(right)
-	}
-	for row := 0; row < rows; row++ {
+	for row := 0; row < maxComparison(len(leftLines), len(rightLines)); row++ {
 		leftLine, rightLine := "", ""
-		if row < len(left) {
-			leftLine = left[row]
+		if row < len(leftLines) {
+			leftLine = leftLines[row]
 		}
-		if row < len(right) {
-			rightLine = right[row]
+		if row < len(rightLines) {
+			rightLine = rightLines[row]
 		}
 		fmt.Fprintf(out, "%s │ %s\n", comparisonPad(leftLine, width), comparisonPad(rightLine, width))
 	}
 	fmt.Fprintf(out, "%s─┴─%s\n", strings.Repeat("─", width), strings.Repeat("─", width))
+	if len(details) >= 2 {
+		fmt.Fprintf(out, "Вопрос: %s\n%s\n", details[0], details[1])
+	}
 }
 
 func comparisonLines(value string, width int) []string {
-	var result []string
-	for _, source := range strings.Split(strings.TrimSpace(value), "\n") {
+	var lines []string
+	for _, sourceLine := range strings.Split(strings.TrimSpace(value), "\n") {
 		var line strings.Builder
 		cells := 0
-		for _, r := range strings.ReplaceAll(source, "\t", "    ") {
-			n := runeCells(r)
-			if cells > 0 && cells+n > width {
-				result = append(result, line.String())
+		for _, r := range strings.ReplaceAll(sourceLine, "\t", "    ") {
+			runeWidth := runeCells(r)
+			if cells > 0 && cells+runeWidth > width {
+				lines = append(lines, line.String())
 				line.Reset()
 				cells = 0
 			}
 			line.WriteRune(r)
-			cells += n
+			cells += runeWidth
 		}
-		result = append(result, line.String())
+		lines = append(lines, line.String())
 	}
-	if len(result) == 0 {
-		return []string{"—"}
-	}
-	return result
+	return lines
 }
 
-func comparisonPad(value string, width int) string {
+func comparisonPad(line string, width int) string {
 	cells := 0
-	for _, r := range value {
+	for _, r := range line {
 		cells += runeCells(r)
 	}
-	if cells >= width {
-		return value
+	return line + strings.Repeat(" ", maxComparison(0, width-cells))
+}
+
+func maxComparison(a, b int) int {
+	if a > b {
+		return a
 	}
-	return value + strings.Repeat(" ", width-cells)
+	return b
 }
