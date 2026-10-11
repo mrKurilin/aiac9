@@ -31,6 +31,10 @@ func (a *Agent) Models(ctx context.Context) (string, error) {
 	}
 	var lines []string
 	for _, model := range models {
+		if model.Size <= 0 {
+			lines = append(lines, model.Name)
+			continue
+		}
 		lines = append(lines, fmt.Sprintf("%s — %.1f ГБ, %s", model.Name, float64(model.Size)/1e9, model.Details.Quantization))
 	}
 	if len(lines) == 0 {

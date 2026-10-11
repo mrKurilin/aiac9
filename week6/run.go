@@ -37,13 +37,25 @@ func RunWith(ctx context.Context, day int, client LocalClient, model string, in 
 }
 
 func RunWithCloud(ctx context.Context, day int, client LocalClient, model string, cloud ChatGenerator, cloudModel string, in io.Reader, out io.Writer) error {
+	return runWithCloud(ctx, day, client, model, cloud, cloudModel, in, out, false)
+}
+
+// RunRemote uses the normal terminal chat workflow with a remote session API.
+func RunRemote(ctx context.Context, client LocalClient, in io.Reader, out io.Writer) error {
+	return runWithCloud(ctx, 30, client, "remote", nil, "", in, out, true)
+}
+
+func runWithCloud(ctx context.Context, day int, client LocalClient, model string, cloud ChatGenerator, cloudModel string, in io.Reader, out io.Writer, remote bool) error {
 	if cloudModel == "" {
 		cloudModel = "deepseek-flash"
 	}
 	agent := NewAgent(client, model)
 	commands := append([]terminal.Command(nil), baseCommands...)
+	if remote {
+		commands = commands[:len(commands)-1]
+	}
 	var rag *RAG
-	if day >= 28 {
+	if day >= 28 && !remote {
 		embedder, ok := client.(Embedder)
 		if !ok {
 			return fmt.Errorf("клиент не поддерживает локальные эмбеддинги")
@@ -61,7 +73,7 @@ func RunWithCloud(ctx context.Context, day int, client LocalClient, model string
 		)
 	}
 	profileName := ""
-	if day >= 29 {
+	if day >= 29 && !remote {
 		agent.UseProfile(Economical)
 		profileName = Economical.Name
 		commands = append(commands,
@@ -72,6 +84,21 @@ func RunWithCloud(ctx context.Context, day int, client LocalClient, model string
 			terminal.Command{Value: "/benchmark", Description: "сравнить профили"},
 		)
 	}
+	var service *Service
+	if day >= 30 && !remote {
+		var err error
+		service, err = NewService(agent, os.Getenv("SERVICE_BIND"), os.Getenv("SERVICE_API_TOKEN"))
+		if err != nil {
+			return err
+		}
+		commands = append(commands,
+			terminal.Command{Value: "/server", Description: "локальный HTTP-сервис"},
+			terminal.Command{Value: "/server start", Description: "запустить HTTP API", Submit: true},
+			terminal.Command{Value: "/server status", Description: "состояние HTTP API", Submit: true},
+			terminal.Command{Value: "/server check", Description: "три HTTP-запроса к сервису", Submit: true},
+			terminal.Command{Value: "/server stop", Description: "остановить HTTP API", Submit: true},
+		)
+	}
 	handle := func(ctx context.Context, line string, out io.Writer) bool {
 		line = strings.TrimSpace(line)
 		progress := func(s string) { terminal.PrintDiagnostic(out, s) }
@@ -79,17 +106,31 @@ func RunWithCloud(ctx context.Context, day int, client LocalClient, model string
 		case "/exit", "/quit":
 			return true
 		case "/help":
-			message := "Команды: /help, /model status, /check, /reset, /clear, /exit, /quit."
+			message := "Команды: /help, /model status, /reset, /clear, /exit, /quit."
+			if !remote {
+				message += " /check."
+			}
 			if rag != nil {
 				message += " /index build [КАТАЛОГ], /index status, /compare ВОПРОС. Обычный текст — локальный вопрос по документам."
+			} else if remote {
+				message += " Обычный текст — диалог с моделью на сервере."
 			} else {
 				message += " Обычный текст — диалог с локальной моделью."
 			}
-			if day >= 29 {
+			if day >= 29 && !remote {
 				message += " /profile status|baseline|optimized, /benchmark ВОПРОС."
+			}
+			if service != nil {
+				message += " /server start|status|check|stop."
 			}
 			fmt.Fprintln(out, message)
 		case "/reset", "/clear":
+			if resetter, ok := client.(interface{ Reset(context.Context) error }); ok {
+				if err := resetter.Reset(ctx); err != nil {
+					fmt.Fprintln(out, "Ошибка сброса диалога:", err)
+					break
+				}
+			}
 			agent.Reset()
 			if screen, ok := out.(interface{ ClearChat() error }); ok {
 				_ = screen.ClearChat()
@@ -104,6 +145,10 @@ func RunWithCloud(ctx context.Context, day int, client LocalClient, model string
 				fmt.Fprintln(out, value)
 			}
 		case "/check":
+			if remote {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
 			value, err := agent.Check(ctx, progress)
 			if value != "" {
 				fmt.Fprintln(out, value)
@@ -123,13 +168,13 @@ func RunWithCloud(ctx context.Context, day int, client LocalClient, model string
 				fmt.Fprintf(out, "Индекс: %d фрагментов, модель %s\n", len(index.Chunks), index.Model)
 			}
 		case "/profile status":
-			if day < 29 {
+			if day < 29 || remote {
 				fmt.Fprintln(out, "Неизвестная команда. /help")
 				break
 			}
 			fmt.Fprintf(out, "Профиль: %s; модель: %s; temperature %.1f; max tokens %d; context %d\n", profileName, agent.Model, agent.Options.Temperature, agent.Options.NumPredict, agent.Options.NumCtx)
 		case "/profile baseline", "/profile optimized":
-			if day < 29 {
+			if day < 29 || remote {
 				fmt.Fprintln(out, "Неизвестная команда. /help")
 				break
 			}
@@ -141,8 +186,52 @@ func RunWithCloud(ctx context.Context, day int, client LocalClient, model string
 				profileName = Economical.Name
 			}
 			fmt.Fprintln(out, "Выбран профиль:", profileName)
+		case "/server start":
+			if service == nil {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
+			progress("Сервис: запускаю HTTP API")
+			if err := service.Start(); err != nil {
+				fmt.Fprintln(out, "Ошибка:", err)
+			} else {
+				fmt.Fprintln(out, "Сервис запущен. GET /health, POST /v1/chat")
+			}
+		case "/server status":
+			if service == nil {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
+			if service.Running() {
+				fmt.Fprintln(out, "Сервис работает")
+			} else {
+				fmt.Fprintln(out, "Сервис остановлен")
+			}
+		case "/server check":
+			if service == nil {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
+			progress("Сервис: выполняю три последовательных HTTP-запроса")
+			result, err := service.Check(ctx, os.Getenv("SERVICE_API_TOKEN"))
+			if result != "" {
+				fmt.Fprintln(out, result)
+			}
+			if err != nil {
+				fmt.Fprintln(out, "Ошибка:", err)
+			}
+		case "/server stop":
+			if service == nil {
+				fmt.Fprintln(out, "Неизвестная команда. /help")
+				break
+			}
+			if err := service.Stop(ctx); err != nil {
+				fmt.Fprintln(out, "Ошибка:", err)
+			} else {
+				fmt.Fprintln(out, "Сервис остановлен")
+			}
 		default:
-			if day >= 29 && (line == "/benchmark" || strings.HasPrefix(line, "/benchmark ")) {
+			if day >= 29 && !remote && (line == "/benchmark" || strings.HasPrefix(line, "/benchmark ")) {
 				question := strings.TrimSpace(strings.TrimPrefix(line, "/benchmark"))
 				if question == "" {
 					fmt.Fprintln(out, "Использование: /benchmark ВОПРОС")
@@ -231,5 +320,15 @@ func RunWithCloud(ctx context.Context, day int, client LocalClient, model string
 		}
 		return false
 	}
-	return terminal.Run(ctx, in, out, fmt.Sprintf("mrkai · день %d · локальная LLM · /help", day), commands, handle)
+	title := fmt.Sprintf("mrkai · день %d · локальная LLM · /help", day)
+	if remote {
+		title = "mrkai · день 30 · удалённая LLM · /help"
+	}
+	err := terminal.Run(ctx, in, out, title, commands, handle)
+	if service != nil {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = service.Stop(shutdownCtx)
+	}
+	return err
 }

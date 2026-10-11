@@ -1,0 +1,11 @@
+**
+!terminal/
+!terminal/go.mod
+!terminal/*.go
+!week6/
+!week6/go.mod
+!week6/*.go
+!d30/
+!d30/server/
+!d30/server/go.mod
+!d30/server/*.go
