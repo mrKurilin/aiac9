@@ -1,0 +1,35 @@
+name: AI review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  review:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Review diff
+        working-directory: d32
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MRKAI_PROJECT_ROOT: ${{ github.workspace }}
+        run: |
+          go build -o "$RUNNER_TEMP/mrkai" .
+          "$RUNNER_TEMP/mrkai" --review "$BASE_SHA" "$HEAD_SHA" > "$RUNNER_TEMP/review.md"
+      - name: Comment on PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR_NUMBER" --body-file "$RUNNER_TEMP/review.md"
