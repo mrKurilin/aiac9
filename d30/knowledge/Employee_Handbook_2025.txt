@@ -1,0 +1,257 @@
+TECHVAULT INC.
+EMPLOYEE HANDBOOK 2025
+Effective Date: January 1, 2025
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1. Welcome to TechVault
+2. Remote Work Policy
+3. Paid Time Off (PTO)
+4. Health & Wellness Benefits
+5. Professional Development
+6. Code of Conduct
+7. Equipment & Technology
+
+================================================================================
+1. WELCOME TO TECHVAULT
+================================================================================
+
+Welcome to TechVault Inc.! We're thrilled to have you join our team of innovators building the future of secure cloud storage solutions.
+
+Founded in 2019, TechVault has grown from a small startup to a leading provider of enterprise cloud storage, serving over 5,000 businesses worldwide. Our mission is to make data storage secure, accessible, and simple.
+
+Company Values:
+- Security First: We protect our customers' data as if it were our own
+- Innovation: We constantly push boundaries in cloud technology
+- Transparency: We communicate openly and honestly
+- Work-Life Balance: We believe great work happens when people are rested and fulfilled
+
+================================================================================
+2. REMOTE WORK POLICY
+================================================================================
+
+TechVault operates as a remote-first company with the following guidelines:
+
+ELIGIBILITY:
+All full-time employees are eligible for fully remote work. Part-time employees may work remotely with manager approval.
+
+WORK LOCATION:
+- Employees may work from anywhere within their country of employment
+- International remote work requires HR approval and must comply with local labor laws
+- Employees must maintain a dedicated workspace with reliable internet (minimum 50 Mbps)
+
+WORKING HOURS:
+- Core collaboration hours: 10 AM - 3 PM in your local timezone
+- Employees must be available during core hours for meetings and team collaboration
+- Flexible scheduling is encouraged outside core hours
+- Total expected working hours: 40 hours per week for full-time employees
+
+COMMUNICATION EXPECTATIONS:
+- Respond to Slack messages within 2 hours during working hours
+- Set status to "Away" when unavailable
+- Use video for team meetings when possible
+- Update your calendar with time off and focus time blocks
+
+CO-WORKING SPACE ALLOWANCE:
+- $200/month stipend for co-working space membership (optional)
+- Submit receipts through Expensify for reimbursement
+
+OFFICE VISITS:
+- Quarterly team meetups are organized in major cities
+- Travel and accommodation covered by the company
+- Optional attendance, but highly encouraged
+
+================================================================================
+3. PAID TIME OFF (PTO)
+================================================================================
+
+TechVault believes in the importance of rest and rejuvenation.
+
+PTO ALLOCATION:
+- 0-2 years of service: 20 days per year
+- 3-5 years of service: 25 days per year
+- 6+ years of service: 30 days per year
+- PTO accrues monthly and is prorated for part-year employees
+
+UNLIMITED PTO PILOT:
+Starting Q2 2025, the Engineering and Product teams will pilot an unlimited PTO policy. Performance expectations remain the same, and employees must coordinate time off with their teams.
+
+HOLIDAYS:
+In addition to PTO, TechVault observes 10 company holidays per year:
+- New Year's Day
+- Martin Luther King Jr. Day
+- Memorial Day
+- Independence Day (US) / equivalent in other countries
+- Labor Day
+- Thanksgiving (US) / equivalent in other countries
+- Day after Thanksgiving
+- Christmas Eve
+- Christmas Day
+- New Year's Eve
+
+SICK LEAVE:
+- 10 days of sick leave per year (separate from PTO)
+- Does not roll over year to year
+- No doctor's note required for absences under 3 consecutive days
+
+PARENTAL LEAVE:
+- 16 weeks fully paid for primary caregivers
+- 8 weeks fully paid for secondary caregivers
+- Must be taken within first year of child's birth or adoption
+
+PTO REQUEST PROCESS:
+1. Submit request in BambooHR at least 2 weeks in advance
+2. Manager approval required
+3. Update team calendar and set Slack status
+4. Delegate urgent tasks before leave
+
+================================================================================
+4. HEALTH & WELLNESS BENEFITS
+================================================================================
+
+HEALTH INSURANCE:
+- Premium health insurance with 90% employer coverage
+- Options include PPO and HDP plans
+- Dental and vision included at no additional cost
+- Coverage begins on your first day of employment
+
+MENTAL HEALTH SUPPORT:
+- 12 free therapy sessions per year through our EAP (Employee Assistance Program)
+- Access to Headspace and Calm meditation apps (company-paid)
+- Monthly mental health days encouraged (counted as sick leave)
+
+WELLNESS STIPEND:
+- $100/month for gym memberships, fitness classes, or wellness activities
+- Can be used for yoga, personal training, sports equipment, etc.
+- Submit receipts through Expensify
+
+HEALTH SAVINGS ACCOUNT (HSA):
+- Available for employees on HDP plans
+- Company contributes $1,000 annually for individual coverage
+- Company contributes $2,000 annually for family coverage
+
+401(K) RETIREMENT PLAN:
+- Company matches 100% up to 4% of salary
+- Immediate vesting
+- Managed through Fidelity
+
+================================================================================
+5. PROFESSIONAL DEVELOPMENT
+================================================================================
+
+TechVault invests in your growth and career development.
+
+LEARNING & DEVELOPMENT BUDGET:
+- $2,000 per year per employee for:
+  * Online courses (Udemy, Coursera, Pluralsight, etc.)
+  * Conference attendance
+  * Professional certifications
+  * Books and learning materials
+- Manager approval required for expenses over $500
+
+CONFERENCE ATTENDANCE:
+- Employees can attend up to 2 conferences per year
+- Travel, accommodation, and registration fees covered
+- Must share learnings with team upon return
+
+INTERNAL LEARNING:
+- Weekly "Tech Talks" - employees share knowledge
+- Monthly book club
+- Quarterly hackathons with prizes
+
+CAREER DEVELOPMENT:
+- Annual performance reviews with growth planning
+- Bi-weekly 1:1s with manager
+- Internal mobility encouraged
+- Mentorship program available
+
+CERTIFICATIONS:
+Fully covered certifications include:
+- AWS Solutions Architect
+- Google Cloud Professional
+- CISSP (Security)
+- PMP (Project Management)
+- Scrum Master certifications
+
+================================================================================
+6. CODE OF CONDUCT
+================================================================================
+
+EXPECTED BEHAVIOR:
+- Treat all colleagues with respect and dignity
+- Communicate professionally in all channels
+- Maintain confidentiality of company and customer data
+- Report concerns to HR immediately
+
+ZERO TOLERANCE POLICIES:
+- Harassment or discrimination of any kind
+- Disclosure of confidential information
+- Insider trading
+- Conflicts of interest without disclosure
+
+SECURITY PROTOCOLS:
+- Use company-provided equipment for work
+- Enable 2FA on all work accounts
+- Never share passwords
+- Lock your computer when away from desk
+- Report security incidents within 1 hour
+
+SOCIAL MEDIA POLICY:
+- You may mention working at TechVault
+- Do not disclose confidential company information
+- Personal opinions should be clearly marked as such
+- Do not speak on behalf of the company without authorization
+
+================================================================================
+7. EQUIPMENT & TECHNOLOGY
+================================================================================
+
+COMPUTER & EQUIPMENT:
+All employees receive:
+- MacBook Pro (M3) or equivalent Windows laptop
+- 27" external monitor (optional second monitor available)
+- Ergonomic keyboard and mouse
+- Headphones with microphone
+- Webcam (if laptop camera insufficient)
+
+HOME OFFICE SETUP:
+- $1,500 one-time stipend for desk, chair, and office setup
+- Must be used within first 3 months of employment
+- Submit receipts through Expensify
+
+SOFTWARE & TOOLS:
+Company-provided licenses for:
+- Slack (communication)
+- Zoom (video conferencing)
+- Google Workspace (email, docs, drive)
+- 1Password (password management)
+- Figma (design)
+- GitHub (development)
+- Linear (project management)
+
+PHONE STIPEND:
+- $75/month for mobile phone reimbursement
+- Must use for work-related calls and 2FA
+
+INTERNET STIPEND:
+- $50/month for home internet
+- No receipts required
+
+EQUIPMENT REPLACEMENT:
+- Laptops replaced every 3 years
+- Earlier replacement available if performance issues
+- Submit IT ticket for equipment issues
+
+RETURNING EQUIPMENT:
+- All equipment must be returned upon departure
+- Shipping labels provided by IT
+- Failure to return equipment may result in charges
+
+================================================================================
+
+QUESTIONS?
+Contact hr@techvault.io or your manager for any clarifications.
+
+Last Updated: January 2025
+Version 2.1
