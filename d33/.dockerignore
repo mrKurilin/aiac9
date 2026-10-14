@@ -1,0 +1,13 @@
+**
+!Dockerfile
+!go.mod
+!go.sum
+!*.go
+!README.md
+!web/
+!web/**
+!docs/
+!docs/faq.md
+!docs/product.md
+!support/
+!support/tickets.json

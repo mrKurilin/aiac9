@@ -1,0 +1,94 @@
+name: garage33
+x-logging: &app-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+services:
+  crm:
+    build:
+      context: .
+      additional_contexts:
+        terminal: ../terminal
+    command: [web]
+    environment:
+      WEB_ADDR: :8080
+      CRM_DB_PATH: /app/data/crm.sqlite
+      SUPPORT_URL: http://support:8081
+      MRKAI_SERVICE_KEY: ${MRKAI_SERVICE_KEY:?Set MRKAI_SERVICE_KEY}
+      CRM_ADMIN_PASSWORD: ${CRM_ADMIN_PASSWORD:?Set CRM_ADMIN_PASSWORD}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - crm_data:/app/data
+    restart: unless-stopped
+    logging: *app-logging
+    healthcheck:
+      test: [CMD, /app/mrkai, --healthcheck, web]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 15s
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+  support:
+    build:
+      context: .
+      additional_contexts:
+        terminal: ../terminal
+    command: [support]
+    environment:
+      SUPPORT_ADDR: :8081
+      CRM_URL: http://crm:8080
+      SUPPORT_DATA_DIR: /app/data
+      MRKAI_SERVICE_KEY: ${MRKAI_SERVICE_KEY:?Set MRKAI_SERVICE_KEY}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?Set DEEPSEEK_API_KEY}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/chat/completions}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+    volumes:
+      - support_data:/app/data
+    depends_on:
+      crm:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *app-logging
+    healthcheck:
+      test: [CMD, /app/mrkai, --healthcheck, support]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+    stop_grace_period: 15s
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+  proxy:
+    image: caddy:2-alpine
+    profiles: [public]
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-localhost}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      crm:
+        condition: service_healthy
+      support:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *app-logging
+volumes:
+  crm_data:
+  support_data:
+  caddy_data:
+  caddy_config:
