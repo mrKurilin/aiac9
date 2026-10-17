@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set +x
+set -euo pipefail
+base_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$base_dir"
+
+read_key() {
+ local variable=$1 prompt=$2 key_url=$3
+ if [[ -z ${!variable:-} ]]; then
+  if [[ ! -t 0 ]]; then
+   printf 'Задайте %s через окружение или запустите mrkai в интерактивном терминале.\n' "$variable" >&2
+   exit 1
+  fi
+  printf 'Получить ключ: %s\n' "$key_url" >&2
+  read -r -s -p "$prompt" "$variable"
+  printf '\n' >&2
+  [[ -n ${!variable} ]] || { printf 'Пустой ключ: %s\n' "$variable" >&2; exit 1; }
+ fi
+ export "$variable"
+}
+if [[ $# == 0 || ( $# == 1 && $1 == --telegram ) ]]; then
+ read_key TRAVELPAYOUTS_TOKEN 'API-токен Travelpayouts (Aviasales): ' 'https://app.travelpayouts.com/profile/api-token'
+ read_key DEEPSEEK_API_KEY 'API-ключ DeepSeek: ' 'https://platform.deepseek.com/api_keys'
+fi
+exec go run . "$@"
